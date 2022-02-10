@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.python-version
+Pipfile.lock
+__pypackages__/
+.env
+.venv
+env/
+venv/
+.idea/
