@@ -64,3 +64,9 @@ All finished with example data creation. Visit your test repository to review cr
 ## Credits
 
 Created by @kshepherd for The Library Code GmbH with support from Universität Hohenheim
+
+## License
+
+This work is licensed under the [BSD 3-Clause License](https://github.com/the-library-code/dspace-rest-python/blob/088169cdcb1a92ff33589b1af8c08a17f9885bbf/LICENSE)
+
+Copyright 2021 The Library Code GmbH
