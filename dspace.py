@@ -425,13 +425,15 @@ class DSpaceClient:
 
         return r
 
-    def api_patch(self, url, operation, path, value, retry=None):
+    def api_patch(self, url, operation, path, value, retry=False):
         """
         @param url: DSpace REST API URL
         @param operation: 'add', 'remove', 'replace', or 'move' (see PatchOperation enumeration)
         @param path: path to perform operation - eg, metadata, withdrawn, etc.
         @param value: new value for add or replace operations, or 'original' path for move operations
+        @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
         @return:
+        @see https://github.com/DSpace/RestContract/blob/main/metadata-patch.md
         """
         if url is None:
             print(f'Missing required URL argument')
@@ -466,20 +468,18 @@ class DSpaceClient:
             # After speaking in #dev it seems that these do need occasional refreshes but I suspect
             # it's happening too often for me, so check for accidentally triggering it
             print(r.text)
-            r_json = r.json()
+            r_json = parse_json(r)
             if 'message' in r_json and 'CSRF token' in r_json['message']:
                 if retry:
                     print('Already retried... something must be wrong')
                 else:
-                    # Attempt a refresh and try again
-                    d.refresh_token()
                     print("Retrying request with updated CSRF token")
                     return self.api_patch(url, operation, path, value, True)
         elif r.status_code == 200:
             # 200 Success
             print(f'successful patch update to {r.json()["type"]} {r.json()["id"]}')
 
-        # Return
+        # Return the raw API response
         return r
 
     def search_objects(self, query=None, filters=None, dsoType=None):
@@ -869,15 +869,33 @@ class DSpaceClient:
         url = f'{self.API_ENDPOINT}/core/items/{item.uuid}'
         return Item(api_resource=parse_json(self.update_dso(url, params=None, data=item.as_dict())))
 
-    def patch_item_metadata(self, url, op, path, val):
+    def add_metadata(self, dso, field, value, language=None, authority=None, confidence=-1, place=''):
         """
-        Perform an atomic patch operation to a given path and with a specified value
-        TODO: Complete this, it is work in progress (add/update/move)
-        @param url:
-        @param op:      operation, eg PatchOperation.ADD or PatchOperation.REPLACE (see enum at top of code)
-        @param path:    path to the metadata value or attribute to patch
-        @param val:     new / updated value to apply
-        @return:        raw response from API patch operation
+        Add metadata to a DSO using the api_patch method (PUT, with path and operation and value)
+        :param dso:
+        :param field:
+        :param value:
+        :param language:
+        :param authority:
+        :param confidence:
+        :param place:
+        :return:
         """
-        return self.api_patch(url, op, path, val, False)
+        if dso is None or field is None or value is None or not isinstance(dso, DSpaceObject):
+            # TODO: separate these tests, and add better error handling
+            print('Invalid or missing DSpace object, field or value string')
+            return self
 
+        # Place can be 0+ integer, or a hyphen - meaning "last"
+        path = f'/metadata/{field}/{place}'
+        patch_value = {
+            'value': value,
+            'language': language,
+            'authority': authority,
+            'confidence': confidence
+        }
+
+        url = dso.links.self
+
+        return DSpaceObject(api_resource=parse_json(self.api_patch(
+            url=url, operation=self.PatchOperation.ADD, path=path, value=patch_value)))
