@@ -265,10 +265,17 @@ class DSpaceClient:
     """
     # Set up basic environment, variables
     session = None
-    API_ENDPOINT = os.environ['DSPACE_API_ENDPOINT']
+    API_ENDPOINT = 'http://localhost:8080/server/api'
+    if 'DSPACE_API_ENDPOINT' in os.environ:
+        API_ENDPOINT = os.environ['DSPACE_API_ENDPOINT']
     LOGIN_URL = f'{API_ENDPOINT}/authn/login'
-    USERNAME = os.environ['DSPACE_API_USERNAME']
-    PASSWORD = os.environ['DSPACE_API_PASSWORD']
+    USERNAME = 'username@test.system.edu'
+    if 'DSPACE_API_USERNAME' in os.environ:
+        USERNAME = os.environ['DSPACE_API_USERNAME']
+    PASSWORD = 'password'
+    if 'DSPACE_API_PASSWORD' in os.environ:
+        PASSWORD = os.environ['DSPACE_API_PASSWORD']
+
     verbose = False
 
     # Simple enum for patch operation types
