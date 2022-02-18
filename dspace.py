@@ -148,11 +148,12 @@ class Item(DSpaceObject):
         Default constructor. Call DSpaceObject init then set item-specific attributes
         @param api_resource: API result object to use as initial data
         """
-        super(Item, self).__init__(api_resource)
-        self.type = 'item'
-        self.inArchive = api_resource['inArchive'] if 'inArchive' in api_resource else False
-        self.discoverable = api_resource['discoverable'] if 'discoverable' in api_resource else False
-        self.withdrawn = api_resource['withdrawn'] if 'withdrawn' in api_resource else False
+        if api_resource is not None:
+            super(Item, self).__init__(api_resource)
+            self.type = 'item'
+            self.inArchive = api_resource['inArchive'] if 'inArchive' in api_resource else False
+            self.discoverable = api_resource['discoverable'] if 'discoverable' in api_resource else False
+            self.withdrawn = api_resource['withdrawn'] if 'withdrawn' in api_resource else False
 
     def get_metadata_values(self, field):
         """
@@ -173,6 +174,14 @@ class Item(DSpaceObject):
         dso_dict = super(Item, self).as_dict()
         item_dict = {'inArchive': self.inArchive, 'discoverable': self.discoverable, 'withdrawn': self.withdrawn}
         return {**dso_dict, **item_dict}
+
+    @classmethod
+    def from_DSpaceObject(cls, dso: DSpaceObject):
+        # Create new b_obj
+        item = cls()
+        for key, value in dso.__dict__.items():
+            item.__dict__[key] = value
+        return item
 
 
 class Community(DSpaceObject):
@@ -328,11 +337,11 @@ class DSpaceClient:
     verbose = False
 
     # Simple enum for patch operation types
-    class PatchOperation(Enum):
-        ADD = 'add',
-        REMOVE = 'remove',
-        REPLACE = 'replace',
-        MOVE = 'move',
+    class PatchOperation:
+        ADD = 'add'
+        REMOVE = 'remove'
+        REPLACE = 'replace'
+        MOVE = 'move'
 
     def __init__(self, api_endpoint=API_ENDPOINT, username=USERNAME, password=PASSWORD):
         """
@@ -496,8 +505,6 @@ class DSpaceClient:
             print(f'Missing required "value" argument for add/replace/move operations')
             return None
 
-        # set headers
-        h = {'Content-type': 'application/json'}
         # compile patch data
         data = {
             "op": operation,
@@ -509,7 +516,15 @@ class DSpaceClient:
             else:
                 data["value"] = value
 
+        # set headers
+        h = {'Content-type': 'application/json'}
+        # perform patch request
         r = self.session.patch(url, json=[data], headers=h)
+        if 'DSPACE-XSRF-TOKEN' in r.headers:
+            t = r.headers['DSPACE-XSRF-TOKEN']
+            print('API Post: Updating token to ' + t)
+            self.session.headers.update({'X-XSRF-Token': t})
+            self.session.cookies.update({'X-XSRF-Token': t})
 
         if r.status_code == 403:
             # 403 Forbidden
@@ -590,8 +605,6 @@ class DSpaceClient:
             # Try to get UUID version to test validity
             id = UUID(uuid).version
             url = f'{url}/{uuid}'
-            if r.status_code != 200:
-                print(f'Error encountered fetching DSO {uuid}: {r.text}')
             return self.api_get(url, None, None)
         except ValueError:
             print(f'Invalid DSO UUID: {uuid}')
@@ -881,8 +894,6 @@ class DSpaceClient:
         try:
             id = UUID(uuid).version
             url = f'{url}/{uuid}'
-            if r.status_code != 200:
-                print(f'Error encountered fetching item {uuid}: {r.text}')
             return self.api_get(url, None, None)
         except ValueError:
             print(f'Invalid item UUID: {uuid}')
@@ -935,6 +946,8 @@ class DSpaceClient:
             print('Invalid or missing DSpace object, field or value string')
             return self
 
+        dso_type = type(dso)
+
         # Place can be 0+ integer, or a hyphen - meaning "last"
         path = f'/metadata/{field}/{place}'
         patch_value = {
@@ -944,7 +957,9 @@ class DSpaceClient:
             'confidence': confidence
         }
 
-        url = dso.links.self
+        url = dso.links['self']['href']
 
-        return DSpaceObject(api_resource=parse_json(self.api_patch(
-            url=url, operation=self.PatchOperation.ADD, path=path, value=patch_value)))
+        r = self.api_patch(
+            url=url, operation=self.PatchOperation.ADD, path=path, value=patch_value)
+
+        return dso_type(api_resource=parse_json(r))
