@@ -64,6 +64,55 @@ class DSpaceObject:
             if '_links' in api_resource:
                 self.links = api_resource['_links']
 
+    def add_metadata(self, field, value, language=None, authority=None, confidence=-1, place=None):
+        """
+        Add metadata to a DSO. This is performed on the local object only, it is not an API operation (see patch)
+        This is useful when constructing new objects for ingest.
+        When doing simple changes like "retrieve a DSO, add some metadata, update" then it is best to use a patch
+        operation, not this clas method. See
+        :param field:
+        :param value:
+        :param language:
+        :param authority:
+        :param confidence:
+        :param place:
+        :return:
+        """
+        if field is None or value is None:
+            return
+        if field in self.metadata:
+            values = self.metadata[field]
+            # Ensure we don't accidentally duplicate place value. If this place already exists, the user
+            # should use a patch operation or we should allow another way to re-order / re-calc place?
+            # For now, we'll just set place to none if it matches an existing place
+            for v in values:
+                if v['place'] == place:
+                    place = None
+                    break
+        else:
+            values = []
+        values.append({"value": value, "language": language,
+                       "authority": authority, "confidence": confidence, "place": place})
+        self.metadata[field] = values
+
+        # Return this as an easy way for caller to inspect or use
+        return self
+
+    def clear_metadata(self, field=None, value=None):
+        if field is None:
+            self.metadata = {}
+        elif field in self.metadata:
+            if value is None:
+                self.metadata.pop(field)
+            else:
+                updated = []
+                for v in self.metadata[field]:
+                    if v != value:
+                        updated.append(v)
+                self.metadata[field] = updated
+
+
+
     def as_dict(self):
         """
         Return custom dict of this DSpaceObject with specific attributes included (no _links, etc.)
