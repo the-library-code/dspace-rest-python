@@ -20,7 +20,6 @@ import requests
 from requests import Request
 import os
 from uuid import UUID
-from enum import Enum
 
 
 class DSpaceObject:
@@ -39,13 +38,17 @@ class DSpaceObject:
     type = None
     parent = None
 
-    def __init__(self, api_resource=None):
+    def __init__(self, api_resource=None, dso=None):
         """
         Default constructor
         @param api_resource: optional API resource (JSON) from a GET response or successful POST can populate instance
         """
+
         self.type = None
         self.metadata = {}
+
+        if dso is not None:
+            api_resource = dso.as_dict()
         if api_resource is not None:
             if 'id' in api_resource:
                 self.id = api_resource['id']
@@ -63,6 +66,10 @@ class DSpaceObject:
             # alternatively - each item could implement getters, or a public method to return links
             if '_links' in api_resource:
                 self.links = api_resource['_links']
+            else:
+                # TODO - write 'construct self URI method'... all we need is type, UUID and some mapping of type
+                #  to the URI type segment eg community -> communities
+                self.links = {'self': {'href': ''}}
 
     def add_metadata(self, field, value, language=None, authority=None, confidence=-1, place=None):
         """
@@ -111,8 +118,6 @@ class DSpaceObject:
                         updated.append(v)
                 self.metadata[field] = updated
 
-
-
     def as_dict(self):
         """
         Return custom dict of this DSpaceObject with specific attributes included (no _links, etc.)
@@ -134,7 +139,14 @@ class DSpaceObject:
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 
-class Item(DSpaceObject):
+class SimpleDSpaceObject(DSpaceObject):
+    """
+    Objects that share similar simple API methods eg. PUT update for full metadata replacement, can have handles, etc.
+    By default this is Item, Community, Collection classes
+    """
+
+
+class Item(SimpleDSpaceObject):
     """
     Extends DSpaceObject to implement specific attributes and functions for items
     """
@@ -143,11 +155,14 @@ class Item(DSpaceObject):
     discoverable = False
     withdrawn = False
 
-    def __init__(self, api_resource=None):
+    def __init__(self, api_resource=None, dso=None):
         """
         Default constructor. Call DSpaceObject init then set item-specific attributes
         @param api_resource: API result object to use as initial data
         """
+        if dso is not None:
+            api_resource = dso.as_dict()
+
         if api_resource is not None:
             super(Item, self).__init__(api_resource)
             self.type = 'item'
@@ -176,15 +191,15 @@ class Item(DSpaceObject):
         return {**dso_dict, **item_dict}
 
     @classmethod
-    def from_DSpaceObject(cls, dso: DSpaceObject):
-        # Create new b_obj
+    def from_dso(cls, dso: DSpaceObject):
+        # Create new Item and copy everything over from this dso
         item = cls()
         for key, value in dso.__dict__.items():
             item.__dict__[key] = value
         return item
 
 
-class Community(DSpaceObject):
+class Community(SimpleDSpaceObject):
     """
     Extends DSpaceObject to implement specific attributes and functions for communities
     """
@@ -209,7 +224,7 @@ class Community(DSpaceObject):
         return {**dso_dict, **community_dict}
 
 
-class Collection(DSpaceObject):
+class Collection(SimpleDSpaceObject):
     """
     Extends DSpaceObject to implement specific attributes and functions for collections
     """
@@ -629,23 +644,43 @@ class DSpaceClient:
             print(f'create operation failed: {r.status_code}: {r.text} ({url})')
         return r
 
-    def update_dso(self, url, params=None, data=None):
+    def update_dso(self, dso, params=None):
         """
-        Base 'update DSpace Object' function.
-        @param url:     DSpace REST API URL
-        @param params:  Any parameters to pass in the request.
-        @param data:    JSON data to apply in teh update - note, this is not a patch operation, this is the full data
-        @return:        Raw API response. Updated DSO *could* be returned but for error checking purposes, raw response
-                        is nice too and can always be parsed from this response later.
+        Update DSpaceObject. Takes a DSpaceObject and any optional parameters. Will send a PUT update to the remote
+        object and return the updated object, typed correctly.
+        :param dso:     DSpaceObject with locally updated data, to send in PUT request
+        :param params:  Optional parameters
+        :return:
+
         """
-        r = self.api_put(url, params=params, json=data)
-        if r.status_code == 200:
-            # 200 OK - success!
-            updated_dso = r.json()
-            print(f'{updated_dso["type"]} {updated_dso["uuid"]} updated sucessfully!')
-        else:
-            print(f'update operation failed: {r.status_code}: {r.text} ({url})')
-        return r
+        if dso is None:
+            return None
+        dso_type = type(dso)
+        if not isinstance(dso, SimpleDSpaceObject):
+            print(f'Only SimpleDSpaceObject types (eg Item, Collection, Community) '
+                  f'are supported by generic update_dso PUT.')
+            return dso
+        try:
+            # Get self URI from HAL links
+            url = dso.links['self']['href']
+            # Get and clean data - there are some unalterable fields that could cause errors
+            data = dso.as_dict()
+            data.pop('lastModified')
+            data.pop('id')
+            data.pop('handle')
+            data.pop('uuid')
+            data.pop('type')
+            r = self.api_put(url, params=params, json=data)
+            if r.status_code == 200:
+                # 200 OK - success!
+                updated_dso = dso_type(parse_json(r))
+                print(f'{updated_dso.type} {updated_dso.uuid} updated sucessfully!')
+            else:
+                print(f'update operation failed: {r.status_code}: {r.text} ({url})')
+
+        except ValueError as e:
+            print(f'{e}')
+            return None
 
     def get_bundles(self, parent=None, uuid=None):
         """
