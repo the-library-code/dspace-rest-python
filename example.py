@@ -55,6 +55,15 @@ else:
     print(f'Error! Giving up.')
     exit(1)
 
+# Update the community metadata
+new_community.name = 'Community created by the Python REST Client - Updated Name'
+new_community.metadata['dc.title'][0] = {
+    'value': 'Community created by the Python REST Client - Updated Name',
+    'language': 'en', 'authority': None, 'confidence': -1
+}
+
+d.update_dso(new_community)
+
 # Put together some basic Collection data.
 # See https://github.com/DSpace/RestContract/blob/main/collections.md
 collection_data = {
@@ -133,6 +142,10 @@ if isinstance(new_item, Item) and new_item.uuid is not None:
 else:
     print(f'Error! Giving up.')
     exit(1)
+
+# Add a single metadata field+value to the item (PATCH operation)
+updated_item = d.add_metadata(dso=new_item, field='dc.description.abstract', value='Added abstract to an existing item',
+                              language='en', authority=None, confidence=-1)
 
 # Create a new ORIGINAL bundle
 # See https://github.com/DSpace/RestContract/blob/main/bundles.md
