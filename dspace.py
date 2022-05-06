@@ -45,7 +45,7 @@ class DSpaceObject:
         """
 
         self.type = None
-        self.metadata = {}
+        self.metadata = dict()
 
         if dso is not None:
             api_resource = dso.as_dict()
@@ -163,8 +163,9 @@ class Item(SimpleDSpaceObject):
         if dso is not None:
             api_resource = dso.as_dict()
 
+        super(Item, self).__init__(api_resource)
+
         if api_resource is not None:
-            super(Item, self).__init__(api_resource)
             self.type = 'item'
             self.inArchive = api_resource['inArchive'] if 'inArchive' in api_resource else False
             self.discoverable = api_resource['discoverable'] if 'discoverable' in api_resource else False
