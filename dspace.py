@@ -666,18 +666,28 @@ class DSpaceClient:
             url = dso.links['self']['href']
             # Get and clean data - there are some unalterable fields that could cause errors
             data = dso.as_dict()
-            data.pop('lastModified')
-            data.pop('id')
-            data.pop('handle')
-            data.pop('uuid')
-            data.pop('type')
+
+            if 'lastModified' in data:
+                data.pop('lastModified')
+            """
+            if 'id' in data:
+                data.pop('id')
+            if 'handle' in data:
+                data.pop('handle')
+            if 'uuid' in data:
+                data.pop('uuid')
+            if 'type' in data:
+                data.pop('type')
+            """
             r = self.api_put(url, params=params, json=data)
             if r.status_code == 200:
                 # 200 OK - success!
                 updated_dso = dso_type(parse_json(r))
                 print(f'{updated_dso.type} {updated_dso.uuid} updated sucessfully!')
+                return updated_dso
             else:
                 print(f'update operation failed: {r.status_code}: {r.text} ({url})')
+                return None
 
         except ValueError as e:
             print(f'{e}')
@@ -962,8 +972,7 @@ class DSpaceClient:
         if not isinstance(item, Item):
             print('Need a valid item')
             return None
-        url = f'{self.API_ENDPOINT}/core/items/{item.uuid}'
-        return Item(api_resource=parse_json(self.update_dso(url, params=None, data=item.as_dict())))
+        return self.update_dso(item, params=None)
 
     def add_metadata(self, dso, field, value, language=None, authority=None, confidence=-1, place=''):
         """
