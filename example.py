@@ -156,7 +156,7 @@ else:
     print(f'Error! Giving up.')
     exit(1)
 
-# Create and upload a new bitstream using the LICENSE file in this project
+# Create and upload a new bitstream using the LICENSE.txt file in this project
 # Set bitstream metadata
 # See https://github.com/DSpace/RestContract/blob/main/bitstreams.md
 bitstream_metadata = {
@@ -171,7 +171,7 @@ file_mime = 'text/plain'
 file_name = 'uploaded_file.txt'
 # Create the bitstream and upload the file
 new_bitstream = d.create_bitstream(bundle=new_bundle, name=file_name,
-                                   path='./LICENSE', mime=file_mime, metadata=bitstream_metadata)
+                                   path='LICENSE.txt', mime=file_mime, metadata=bitstream_metadata)
 if isinstance(new_bitstream, Bitstream) and new_bitstream.uuid is not None:
     print(f'New bitstream created! UUID: {new_bitstream.uuid}')
 else:
