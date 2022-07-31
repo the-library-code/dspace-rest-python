@@ -1,47 +1,42 @@
 # DSpace Python REST Client Library
 This client library allows Python 3 scripts (Python 2 probably compatible but not officially supported) to interact with
-DSpace 7+ repositories, using the new REST API in DSpace that is used by its own user interface.
+DSpace 7+ repositories, using the DSpace REST API.
 
 This library is a work in progress and so far offers basic create, update, retrieve functionality for
-Community, Collection, Bundle, Item and Bitstream objects.
+Community, Collection, Bundle, Item, Bitstream, Group and User (EPerson) objects.
 
 Help with extending the scope and improving the code is always welcome!
+
+PyPI homepage: https://pypi.org/project/dspace-rest-client/
 
 ## Requirements
 * Python 3.x (developed using Python 3.8.5)
 * Python Requests module (see `requirements.txt`)
 * Working DSpace 7 repository with an accessible REST API
 
+## Installation
+To install with pip: 
+`pip install dspace_rest_client`
+
+(or `pip3` or `python -m pip` as appropriate to your environment)
+
+To install manually, clone this repository and install the requirements:
+```commandline
+git clone https://github.com/the-library-code/dspace-rest-python.git
+pip install -r requiremnets.txt
+```
+
+
 ## Usage
 After installing dependencies, you're ready to run the script.
 You can either pass the base API URL to the DSpaceClient() constructor or set them as environment variables.
 
-## Example
 See the `example.py` script for an example of community, collection, item, bundle and bitstream creation.
 Just set the credentials and base URL at the top of the script to match your test system, or if you've set environment
 variables, remove the arguments from the DSpaceClient() instantiation and the environment variables will be used as
 defaults.
 
-Install Requests, if not already installed: (use pyenv / virtualenv as you prefer!)
-```commandline
-╰─$ pip install requests                           
-Collecting requests
-  Downloading requests-2.27.1-py2.py3-none-any.whl (63 kB)
-     |████████████████████████████████| 63 kB 980 kB/s 
-Collecting urllib3<1.27,>=1.21.1
-  Downloading urllib3-1.26.8-py2.py3-none-any.whl (138 kB)
-     |████████████████████████████████| 138 kB 4.0 MB/s 
-Collecting certifi>=2017.4.17
-  Using cached certifi-2021.10.8-py2.py3-none-any.whl (149 kB)
-Collecting charset-normalizer~=2.0.0; python_version >= "3"
-  Downloading charset_normalizer-2.0.11-py3-none-any.whl (39 kB)
-Collecting idna<4,>=2.5; python_version >= "3"
-  Using cached idna-3.3-py3-none-any.whl (61 kB)
-Installing collected packages: urllib3, certifi, charset-normalizer, idna, requests
-Successfully installed certifi-2021.10.8 charset-normalizer-2.0.11 idna-3.3 requests-2.27.1 urllib3-1.26.8
-```
-
-Run the script:
+The output from the `example.py` script should look something like:
 
 ```commandline
 ╰─$ python example.py                                                                                                                                                                                                              1 ↵
