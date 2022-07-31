@@ -3,16 +3,12 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-install_requires = [
-    "requests"
-]
-
 setuptools.setup(
     name="dspace-rest-client",
-    version="0.1.0-dev",
+    version="0.1.0",
     author="Kim Shepherd",
     author_email="kim@the-library-code.de",
-    description="A REST API client library for DSpace 7.",
+    description="A DSpace 7 REST API client library",
     license="BSD-3-Clause",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -26,8 +22,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     packages=["dspace_rest_client"],
-    entry_points={
-        "console_scripts": ["dspace-rest-client = dspace_rest_client.__main__:main"]
-    },
-    install_requires=install_requires,
+    install_requires=["requests"]
 )
