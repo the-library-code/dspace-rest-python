@@ -22,7 +22,7 @@ import requests
 from requests import Request
 import os
 from uuid import UUID
-from models import *
+from .models import *
 
 __all__ = ['DSpaceClient']
 
