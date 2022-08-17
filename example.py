@@ -7,7 +7,8 @@ Example Python 3 application using the dspace.py API client library to create
 some resources in a DSpace 7 repository.
 """
 
-from dspace import DSpaceClient, Item, Community, Collection, Bundle, Bitstream
+from dspace_rest_client.client import DSpaceClient
+from dspace_rest_client.models import Community, Collection, Item, Bundle, Bitstream
 
 # Example variables needed for authentication and basic API requests
 # SET THESE TO MATCH YOUR TEST SYSTEM BEFORE RUNNING THE EXAMPLE SCRIPT

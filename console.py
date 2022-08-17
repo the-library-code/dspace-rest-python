@@ -1,4 +1,5 @@
-from dspace import DSpaceClient, Item, Community, Collection, Bundle, Bitstream
+from dspace_rest_client.client import DSpaceClient
+from dspace_rest_client.models import Community, Collection, Item, Bundle, Bitstream
 import code
 
 url = 'http://localhost:8080/server/api'
