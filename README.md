@@ -31,6 +31,10 @@ pip install -r requirements.txt
 After installing dependencies, you're ready to run the script.
 You can either pass the base API URL to the DSpaceClient() constructor or set them as environment variables.
 
+Some environment variables can be used when setting up the REST client connection.
+`DSPACE_API_ENDPOINT` is the base URL of your endpoint eg. http://localhost:8080/server
+`DSPACE_API_USERNAME` and `DSPACE_API_PASSWORD` are credentials to use for authentication.
+
 See the `example.py` script for an example of community, collection, item, bundle and bitstream creation.
 Just set the credentials and base URL at the top of the script to match your test system, or if you've set environment
 variables, remove the arguments from the DSpaceClient() instantiation and the environment variables will be used as
@@ -58,7 +62,7 @@ All finished with example data creation. Visit your test repository to review cr
 
 ## Credits
 
-Created by @kshepherd for The Library Code GmbH with support from Universität Hohenheim
+Created by [Kim Shepherd](https://www.github.com/kshepherd) for [The Library Code GmbH](https://www.lib-co.de) with support from Universität Hohenheim
 
 ## License
 

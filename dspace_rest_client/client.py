@@ -26,6 +26,7 @@ from .models import *
 
 __all__ = ['DSpaceClient']
 
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 def parse_json(response):
     """
@@ -96,7 +97,7 @@ class DSpaceClient:
         # Look for DSPACE-XSRF-TOKEN and persist it as X-XSRF-Token in session headers
         if 'DSPACE-XSRF-TOKEN' in r.headers:
             t = r.headers['DSPACE-XSRF-TOKEN']
-            print('Updating token to ' + t)
+            logging.debug('Updating CSRF token to ' + t)
             self.session.headers.update({'X-XSRF-Token': t})
             self.session.cookies.update({'X-XSRF-Token': t})
 
@@ -109,7 +110,7 @@ class DSpaceClient:
         r = self.session.get(f'{self.API_ENDPOINT}/authn/status')
         r_json = r.json()
         if 'authenticated' in r_json and r_json['authenticated'] is True:
-            print(f'Authenticated successfully as {self.USERNAME}')
+            logging.info(f'Authenticated successfully as {self.USERNAME}')
         else:
             return False
 
@@ -124,7 +125,7 @@ class DSpaceClient:
         # Look for DSPACE-XSRF-TOKEN and persist it as X-XSRF-Token in session headers
         if 'DSPACE-XSRF-TOKEN' in r.headers:
             t = r.headers['DSPACE-XSRF-TOKEN']
-            print('Updating token to ' + t)
+            logging.debug('Updating CSRF token to ' + t)
             self.session.headers.update({'X-XSRF-Token': t})
             self.session.cookies.update({'X-XSRF-Token': t})
 
@@ -139,7 +140,7 @@ class DSpaceClient:
         r = self.session.get(url, params=params, data=data)
         if 'DSPACE-XSRF-TOKEN' in r.headers:
             t = r.headers['DSPACE-XSRF-TOKEN']
-            print('Updating token to ' + t)
+            logging.debug('Updating token to ' + t)
             self.session.headers.update({'X-XSRF-Token': t})
             self.session.cookies.update({'X-XSRF-Token': t})
         return r
@@ -158,7 +159,7 @@ class DSpaceClient:
         r = self.session.post(url, json=json, params=params, headers=h)
         if 'DSPACE-XSRF-TOKEN' in r.headers:
             t = r.headers['DSPACE-XSRF-TOKEN']
-            print('API Post: Updating token to ' + t)
+            logging.debug('Updating token to ' + t)
             self.session.headers.update({'X-XSRF-Token': t})
             self.session.cookies.update({'X-XSRF-Token': t})
 
@@ -171,9 +172,9 @@ class DSpaceClient:
             r_json = r.json()
             if 'message' in r_json and 'CSRF token' in r_json['message']:
                 if retry:
-                    print('API Post: Already retried... something must be wrong')
+                    logging.warning(f'Too many retries updating token: {r.status_code}: {r.text}')
                 else:
-                    print("API Post: Retrying request with updated CSRF token")
+                    logging.debug("Retrying request with updated CSRF token")
                     return self.api_post(url, params=params, json=json, retry=True)
 
         return r
@@ -192,7 +193,7 @@ class DSpaceClient:
         r = self.session.put(url, params=params, json=json, headers=h)
         if 'DSPACE-XSRF-TOKEN' in r.headers:
             t = r.headers['DSPACE-XSRF-TOKEN']
-            print('Updating token to ' + t)
+            logging.debug('Updating token to ' + t)
             self.session.headers.update({'X-XSRF-Token': t})
             self.session.cookies.update({'X-XSRF-Token': t})
 
@@ -205,9 +206,9 @@ class DSpaceClient:
             r_json = r.json()
             if 'message' in r_json and 'CSRF token' in r_json['message']:
                 if retry:
-                    print('Already retried... something must be wrong')
+                    logging.warning(f'Too many retries updating token: {r.status_code}: {r.text}')
                 else:
-                    print("Retrying request with updated CSRF token")
+                    logging.debug("Retrying request with updated CSRF token")
                     return self.api_put(url, params=params, json=json, retry=True)
 
         return r
@@ -225,7 +226,7 @@ class DSpaceClient:
         r = self.session.delete(url, params=params, headers=h)
         if 'DSPACE-XSRF-TOKEN' in r.headers:
             t = r.headers['DSPACE-XSRF-TOKEN']
-            print('Updating token to ' + t)
+            logging.debug('Updating token to ' + t)
             self.session.headers.update({'X-XSRF-Token': t})
             self.session.cookies.update({'X-XSRF-Token': t})
 
@@ -238,9 +239,9 @@ class DSpaceClient:
             r_json = r.json()
             if 'message' in r_json and 'CSRF token' in r_json['message']:
                 if retry:
-                    print('Already retried... something must be wrong')
+                    logging.warning(f'Too many retries updating token: {r.status_code}: {r.text}')
                 else:
-                    print("Retrying request with updated CSRF token")
+                    logging.debug("Retrying request with updated CSRF token")
                     return self.api_delete(url, params=params, retry=True)
 
         return r
@@ -284,7 +285,7 @@ class DSpaceClient:
         r = self.session.patch(url, json=[data], headers=h)
         if 'DSPACE-XSRF-TOKEN' in r.headers:
             t = r.headers['DSPACE-XSRF-TOKEN']
-            print('API Post: Updating token to ' + t)
+            logging.debug('API Post: Updating token to ' + t)
             self.session.headers.update({'X-XSRF-Token': t})
             self.session.cookies.update({'X-XSRF-Token': t})
 
@@ -297,9 +298,9 @@ class DSpaceClient:
             r_json = parse_json(r)
             if 'message' in r_json and 'CSRF token' in r_json['message']:
                 if retry:
-                    print('Already retried... something must be wrong')
+                    logging.warning(f'Too many retries updating token: {r.status_code}: {r.text}')
                 else:
-                    print("Retrying request with updated CSRF token")
+                    logging.debug("Retrying request with updated CSRF token")
                     return self.api_patch(url, operation, path, value, True)
         elif r.status_code == 200:
             # 200 Success
@@ -839,3 +840,10 @@ class DSpaceClient:
             # TODO: Validation. Note, at least here I will just allow a dict instead of the pointless cast<->cast
             # that you see for other DSO types - still figuring out the best way
         return Group(api_resource=parse_json(self.create_dso(url, params=None, data=data)))
+
+    def update_token(self, r):
+        if 'DSPACE-XSRF-TOKEN' in r.headers:
+            t = r.headers['DSPACE-XSRF-TOKEN']
+            logging.debug('API Post: Updating token to ' + t)
+            self.session.headers.update({'X-XSRF-Token': t})
+            self.session.cookies.update({'X-XSRF-Token': t})

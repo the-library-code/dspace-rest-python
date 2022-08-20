@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="dspace-rest-client",
-    version="0.1.2",
+    version="0.1.3",
     author="Kim Shepherd",
     author_email="kim@the-library-code.de",
     description="A DSpace 7 REST API client library",
