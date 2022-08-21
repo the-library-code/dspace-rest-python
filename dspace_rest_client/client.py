@@ -92,14 +92,9 @@ class DSpaceClient:
         After POST, check /authn/status and log success if the authenticated json property is true
         @return: response object
         """
-        # Get CSRF token
+        # Get and update CSRF token
         r = self.session.post(self.LOGIN_URL)
-        # Look for DSPACE-XSRF-TOKEN and persist it as X-XSRF-Token in session headers
-        if 'DSPACE-XSRF-TOKEN' in r.headers:
-            t = r.headers['DSPACE-XSRF-TOKEN']
-            logging.debug('Updating CSRF token to ' + t)
-            self.session.headers.update({'X-XSRF-Token': t})
-            self.session.cookies.update({'X-XSRF-Token': t})
+        self.update_token(r)
 
         # POST Login
         r = self.session.post(self.LOGIN_URL, data={'user': self.USERNAME, 'password': self.PASSWORD})
@@ -122,12 +117,7 @@ class DSpaceClient:
         @return: None
         """
         r = self.api_post(self.LOGIN_URL, None, None)
-        # Look for DSPACE-XSRF-TOKEN and persist it as X-XSRF-Token in session headers
-        if 'DSPACE-XSRF-TOKEN' in r.headers:
-            t = r.headers['DSPACE-XSRF-TOKEN']
-            logging.debug('Updating CSRF token to ' + t)
-            self.session.headers.update({'X-XSRF-Token': t})
-            self.session.cookies.update({'X-XSRF-Token': t})
+        self.update_token(r)
 
     def api_get(self, url, params=None, data=None):
         """
@@ -138,11 +128,7 @@ class DSpaceClient:
         @return:        Response from API
         """
         r = self.session.get(url, params=params, data=data)
-        if 'DSPACE-XSRF-TOKEN' in r.headers:
-            t = r.headers['DSPACE-XSRF-TOKEN']
-            logging.debug('Updating token to ' + t)
-            self.session.headers.update({'X-XSRF-Token': t})
-            self.session.cookies.update({'X-XSRF-Token': t})
+        self.update_token(r)
         return r
 
     def api_post(self, url, params, json, retry=False):
@@ -157,18 +143,13 @@ class DSpaceClient:
         """
         h = {'Content-type': 'application/json'}
         r = self.session.post(url, json=json, params=params, headers=h)
-        if 'DSPACE-XSRF-TOKEN' in r.headers:
-            t = r.headers['DSPACE-XSRF-TOKEN']
-            logging.debug('Updating token to ' + t)
-            self.session.headers.update({'X-XSRF-Token': t})
-            self.session.cookies.update({'X-XSRF-Token': t})
+        self.update_token(r)
 
         if r.status_code == 403:
             # 403 Forbidden
             # If we had a CSRF failure, retry the request with the updated token
             # After speaking in #dev it seems that these do need occasional refreshes but I suspect
             # it's happening too often for me, so check for accidentally triggering it
-            print(r.text)
             r_json = r.json()
             if 'message' in r_json and 'CSRF token' in r_json['message']:
                 if retry:
@@ -191,11 +172,7 @@ class DSpaceClient:
         """
         h = {'Content-type': 'application/json'}
         r = self.session.put(url, params=params, json=json, headers=h)
-        if 'DSPACE-XSRF-TOKEN' in r.headers:
-            t = r.headers['DSPACE-XSRF-TOKEN']
-            logging.debug('Updating token to ' + t)
-            self.session.headers.update({'X-XSRF-Token': t})
-            self.session.cookies.update({'X-XSRF-Token': t})
+        self.update_token(r)
 
         if r.status_code == 403:
             # 403 Forbidden
@@ -224,11 +201,7 @@ class DSpaceClient:
         """
         h = {'Content-type': 'application/json'}
         r = self.session.delete(url, params=params, headers=h)
-        if 'DSPACE-XSRF-TOKEN' in r.headers:
-            t = r.headers['DSPACE-XSRF-TOKEN']
-            logging.debug('Updating token to ' + t)
-            self.session.headers.update({'X-XSRF-Token': t})
-            self.session.cookies.update({'X-XSRF-Token': t})
+        self.update_token(r)
 
         if r.status_code == 403:
             # 403 Forbidden
@@ -283,11 +256,7 @@ class DSpaceClient:
         h = {'Content-type': 'application/json'}
         # perform patch request
         r = self.session.patch(url, json=[data], headers=h)
-        if 'DSPACE-XSRF-TOKEN' in r.headers:
-            t = r.headers['DSPACE-XSRF-TOKEN']
-            logging.debug('API Post: Updating token to ' + t)
-            self.session.headers.update({'X-XSRF-Token': t})
-            self.session.cookies.update({'X-XSRF-Token': t})
+        self.update_token(r)
 
         if r.status_code == 403:
             # 403 Forbidden
@@ -437,7 +406,7 @@ class DSpaceClient:
                 return None
 
         except ValueError as e:
-            print(f'{e}')
+            logging.error("Error parsing DSO response", exc_info=True)
             return None
 
     def delete_dso(self, dso=None, url=None, params=None):
@@ -842,8 +811,18 @@ class DSpaceClient:
         return Group(api_resource=parse_json(self.create_dso(url, params=None, data=data)))
 
     def update_token(self, r):
+        """
+        Refresh / update the XSRF (aka. CSRF) token if DSPACE-XSRF-TOKEN found in response headers
+        This is used by all the base methods like api_put,
+        See: https://github.com/DSpace/RestContract/blob/main/csrf-tokens.md
+        :param r:
+        :return:
+        """
+        if not self.session:
+            logging.debug('Session state not found, setting...')
+            self.session = requests.Session()
         if 'DSPACE-XSRF-TOKEN' in r.headers:
             t = r.headers['DSPACE-XSRF-TOKEN']
-            logging.debug('API Post: Updating token to ' + t)
+            logging.debug(f'Updating XSRF token to {t}')
             self.session.headers.update({'X-XSRF-Token': t})
             self.session.cookies.update({'X-XSRF-Token': t})
