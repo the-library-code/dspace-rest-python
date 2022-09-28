@@ -61,11 +61,11 @@ class DSpaceObject:
             if 'handle' in api_resource:
                 self.handle = api_resource['handle']
             if 'metadata' in api_resource:
-                self.metadata = api_resource['metadata']
+                self.metadata = api_resource['metadata'].copy()
             # Python interprets _ prefix as private so for now, renaming this and handling it separately
             # alternatively - each item could implement getters, or a public method to return links
             if '_links' in api_resource:
-                self.links = api_resource['_links']
+                self.links = api_resource['_links'].copy()
             else:
                 # TODO - write 'construct self URI method'... all we need is type, UUID and some mapping of type
                 #  to the URI type segment eg community -> communities
@@ -154,6 +154,7 @@ class Item(SimpleDSpaceObject):
     inArchive = False
     discoverable = False
     withdrawn = False
+    metadata = dict()
 
     def __init__(self, api_resource=None, dso=None):
         """
