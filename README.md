@@ -23,7 +23,7 @@ To install with pip:
 To install manually, clone this repository and install the requirements:
 ```commandline
 git clone https://github.com/the-library-code/dspace-rest-python.git
-pip install -r requiremnets.txt
+pip install -r requirements.txt
 ```
 
 
