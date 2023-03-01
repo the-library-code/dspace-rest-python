@@ -18,11 +18,75 @@ from requests import Request
 import os
 from uuid import UUID
 
-__all__ = ['DSpaceObject', 'SimpleDSpaceObject', 'Community',
+__all__ = ['DSpaceObject', 'HALResource', 'ExternalDataObject', 'SimpleDSpaceObject', 'Community',
            'Collection', 'Item', 'Bundle', 'Bitstream', 'User', 'Group']
 
 
-class DSpaceObject:
+class HALResource:
+    """
+    Base class to represent HAL+JSON API resources
+    """
+    links = {}
+    type = None
+
+    def __init__(self, api_resource=None):
+        """
+        Default constructor
+        @param api_resource: optional API resource (JSON) from a GET response or successful POST can populate instance
+        """
+        if api_resource is not None:
+            if 'type' in api_resource:
+                self.type = api_resource['type']
+            if '_links' in api_resource:
+                self.links = api_resource['_links'].copy()
+            else:
+                self.links = {'self': {'href': None}}
+
+
+class ExternalDataObject(HALResource):
+    """
+    Generic External Data Object as configured in DSpace's external data providers framework
+    """
+    id = None
+    display = None
+    value = None
+    externalSource = None
+    metadata = {}
+
+    def __init__(self, api_resource=None):
+        """
+        Default constructor
+        @param api_resource: optional API resource (JSON) from a GET response or successful POST can populate instance
+        """
+        super().__init__(api_resource)
+
+        self.metadata = dict()
+
+        if api_resource is not None:
+            if 'id' in api_resource:
+                self.id = api_resource['id']
+            if 'display' in api_resource:
+                self.display = api_resource['display']
+            if 'value' in api_resource:
+                self.value = api_resource['value']
+            if 'externalSource' in api_resource:
+                self.externalSource = api_resource['externalSource']
+            if 'metadata' in api_resource:
+                self.metadata = api_resource['metadata'].copy()
+
+    def get_metadata_values(self, field):
+        """
+        Return metadata values as simple list of strings
+        @param field: DSpace field, eg. dc.creator
+        @return: list of strings
+        """
+        values = list()
+        if field in self.metadata:
+            values = self.metadata[field]
+        return values
+
+
+class DSpaceObject(HALResource):
     """
     Base class to represent DSpaceObject API resources
     The variables here are present in an _embedded response and the ones required for POST / PUT / PATCH
@@ -33,7 +97,6 @@ class DSpaceObject:
     name = None
     handle = None
     metadata = {}
-    links = {}
     lastModified = None
     type = None
     parent = None
@@ -43,7 +106,7 @@ class DSpaceObject:
         Default constructor
         @param api_resource: optional API resource (JSON) from a GET response or successful POST can populate instance
         """
-
+        super().__init__(api_resource)
         self.type = None
         self.metadata = dict()
 
