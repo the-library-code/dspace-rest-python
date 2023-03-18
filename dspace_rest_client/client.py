@@ -658,11 +658,17 @@ class DSpaceClient:
         # Perform the actual request. By now, our URL and parameter should be properly set
         r_json = self.fetch_resource(url, params=params)
         if '_embedded' in r_json:
+            # This is a list of collections
             if 'collections' in r_json['_embedded']:
                 collections = list()
                 for collection_resource in r_json['_embedded']['collections']:
                     collections.append(Collection(collection_resource))
                 return collections
+        elif 'uuid' in r_json:
+            # This is a single collection
+            collections = list()
+            collections.append(Collection(r_json))
+            return collections
 
         return list()
 
