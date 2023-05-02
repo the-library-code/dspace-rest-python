@@ -290,13 +290,14 @@ class DSpaceClient:
         if filters is None:
             filters = {}
         url = f'{self.API_ENDPOINT}/discover/search/objects'
-        params = filters
+        # we will add params to filters, so
+        params = {}
         if query is not None:
             params['query'] = query
         if dsoType is not None:
             params['dsoType'] = dsoType
 
-        r_json = self.fetch_resource(url=url, params=params)
+        r_json = self.fetch_resource(url=url, params={**params, **filters})
 
         # instead lots of 'does this key exist, etc etc' checks, just go for it and wrap in a try?
         try:
