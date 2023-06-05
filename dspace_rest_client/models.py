@@ -112,6 +112,7 @@ class DSpaceObject(HALResource):
 
         if dso is not None:
             api_resource = dso.as_dict()
+            self.links = dso.links.copy()
         if api_resource is not None:
             if 'id' in api_resource:
                 self.id = api_resource['id']
@@ -129,10 +130,6 @@ class DSpaceObject(HALResource):
             # alternatively - each item could implement getters, or a public method to return links
             if '_links' in api_resource:
                 self.links = api_resource['_links'].copy()
-            else:
-                # TODO - write 'construct self URI method'... all we need is type, UUID and some mapping of type
-                #  to the URI type segment eg community -> communities
-                self.links = {'self': {'href': ''}}
 
     def add_metadata(self, field, value, language=None, authority=None, confidence=-1, place=None):
         """
@@ -192,7 +189,7 @@ class DSpaceObject(HALResource):
             'handle': self.handle,
             'metadata': self.metadata,
             'lastModified': self.lastModified,
-            'type': self.type
+            'type': self.type,
         }
 
     def to_json(self):
@@ -226,12 +223,13 @@ class Item(SimpleDSpaceObject):
         """
         if dso is not None:
             api_resource = dso.as_dict()
-
-        super(Item, self).__init__(api_resource)
+            super(Item, self).__init__(dso=dso)
+        else:
+            super(Item, self).__init__(api_resource)
 
         if api_resource is not None:
             self.type = 'item'
-            self.inArchive = api_resource['inArchive'] if 'inArchive' in api_resource else False
+            self.inArchive = api_resource['inArchive'] if 'inArchive' in api_resource else True
             self.discoverable = api_resource['discoverable'] if 'discoverable' in api_resource else False
             self.withdrawn = api_resource['withdrawn'] if 'withdrawn' in api_resource else False
 
