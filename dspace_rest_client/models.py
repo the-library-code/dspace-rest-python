@@ -42,6 +42,16 @@ class HALResource:
             else:
                 self.links = {'self': {'href': None}}
 
+class AddressableHALResource(HALResource):
+    id = None
+    def __init__(self, api_resource=None):
+        super().__init__(api_resource)
+        if api_resource is not None:
+            if 'id' in api_resource:
+                self.id = api_resource['id']
+
+    def as_dict(self):
+        return {'id': self.id}
 
 class ExternalDataObject(HALResource):
     """
@@ -451,3 +461,38 @@ class User(SimpleDSpaceObject):
                      'email': self.email, 'requireCertificate': self.requireCertificate,
                      'selfRegistered': self.selfRegistered}
         return {**dso_dict, **user_dict}
+
+class InProgressSubmission(AddressableHALResource):
+    lastModified = None
+    step = None
+    sections = {}
+    type = None
+
+    def __init__(self, api_resource):
+        super(InProgressSubmission, self).__init__(api_resource)
+        if 'lastModified' in api_resource:
+            self.lastModified = api_resource['lastModified']
+        if 'step' in api_resource:
+            self.step = api_resource['lastModified']
+        if 'sections' in api_resource:
+            self.sections = api_resource['sections'].copy()
+        if 'type' in api_resource:
+            self.lastModified = api_resource['lastModified']
+
+    def as_dict(self):
+        parent_dict = super(InProgressSubmission, self).as_dict()
+        dict = {
+            'lastModified': self.lastModified,
+            'step': self.step,
+            'sections': self.sections,
+            'type': self.type
+        }
+        return {**parent_dict, **dict}
+
+class WorkspaceItem(InProgressSubmission):
+
+    def __init__(self, api_resource):
+        super(WorkspaceItem, self).__init__(api_resource)
+
+    def as_dict(self):
+        return super(WorkspaceItem, self).as_dict()
