@@ -160,6 +160,35 @@ class DSpaceClient:
 
         return r
 
+    def api_post_uri(self, url, params, uri_list, retry=False):
+        """
+        Perform a POST request. Refresh XSRF token if necessary.
+        POSTs are typically used to create objects.
+        @param url:     DSpace REST API URL
+        @param params:  Any parameters to include (eg ?parent=abbc-....)
+        @param uri_list: One or more URIs referencing objects
+        @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
+        @return:        Response from API
+        """
+        h = {'Content-type': 'text/uri-list'}
+        r = self.session.post(url, data=uri_list, params=params, headers=h)
+        self.update_token(r)
+
+        if r.status_code == 403:
+            # 403 Forbidden
+            # If we had a CSRF failure, retry the request with the updated token
+            # After speaking in #dev it seems that these do need occasional refreshes but I suspect
+            # it's happening too often for me, so check for accidentally triggering it
+            r_json = r.json()
+            if 'message' in r_json and 'CSRF token' in r_json['message']:
+                if retry:
+                    logging.warning(f'Too many retries updating token: {r.status_code}: {r.text}')
+                else:
+                    logging.debug("Retrying request with updated CSRF token")
+                    return self.api_post(url, params=params, json=json, retry=True)
+
+        return r
+
     def api_put(self, url, params, json, retry=False):
         """
         Perform a PUT request. Refresh XSRF token if necessary.
@@ -816,6 +845,11 @@ class DSpaceClient:
             # TODO: Validation. Note, at least here I will just allow a dict instead of the pointless cast<->cast
             # that you see for other DSO types - still figuring out the best way
         return Group(api_resource=parse_json(self.create_dso(url, params=None, data=data)))
+
+    def start_workflow(self, workspace_item):
+        url = f'{self.API_ENDPOINT}/workflow/workflowitems'
+        res = parse_json(self.api_post_uri(url, params=None, uri_list=workspace_item))
+        print(res)
 
     def update_token(self, r):
         """
