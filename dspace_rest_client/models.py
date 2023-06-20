@@ -496,3 +496,23 @@ class WorkspaceItem(InProgressSubmission):
 
     def as_dict(self):
         return super(WorkspaceItem, self).as_dict()
+
+class EntityType(AddressableHALResource):
+    """
+    Extends Addressable HAL Resource to model an entity type (aka item type)
+    used in entities and relationships. For example, Publication, Person, Project and Journal
+    are all common entity types used in DSpace 7+
+    """
+    def __init__(self, api_resource):
+        super(EntityType, self).__init__(api_resource)
+        if 'label' in api_resource:
+            self.label = api_resource['label']
+        if 'type' in api_resource:
+            self.label = api_resource['type']
+
+class RelationshipType(AddressableHALResource):
+    """
+    TODO: RelationshipType
+    """
+    def __init__(self, api_resource):
+        super(RelationshipType, self).__init__(api_resource)

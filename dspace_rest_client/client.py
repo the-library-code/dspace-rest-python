@@ -307,11 +307,15 @@ class DSpaceClient:
         # Return the raw API response
         return r
 
-    def search_objects(self, query=None, filters=None, dsoType=None):
+    # PAGINATION
+    def search_objects(self, query=None, filters=None, page=0, size=20, sort=None, dsoType=None):
         """
-        Do a basic search with optional query, filters and dsoType params. TODO: pagination
+        Do a basic search with optional query, filters and dsoType params.
         @param query:   query string
         @param filters: discovery filters as dict eg. {'f.entityType': 'Publication,equals', ... }
+        @param page: page number (not like 'start' as this is not row number, but page number of size {size})
+        @param size: size of page (aka. 'rows'), affects the page parameter above
+        @param sort: sort eg. 'title,asc'
         @param dsoType: DSO type to further filter results
         @return:        list of DspaceObject objects constructed from API resources
         """
@@ -325,6 +329,12 @@ class DSpaceClient:
             params['query'] = query
         if dsoType is not None:
             params['dsoType'] = dsoType
+        if size is not None:
+            params['size'] = size
+        if page is not None:
+            params['page'] = page
+        if sort is not None:
+            params['sort'] = sort
 
         r_json = self.fetch_resource(url=url, params={**params, **filters})
 
@@ -475,7 +485,8 @@ class DSpaceClient:
             print(f'{e}')
             return None
 
-    def get_bundles(self, parent=None, uuid=None):
+    # PAGINATION
+    def get_bundles(self, parent=None, uuid=None, page=0, size=20, sort=None):
         """
         Get bundles for an item
         @param parent:  python Item object, from which the UUID will be referenced in the URL.
@@ -494,8 +505,14 @@ class DSpaceClient:
             url = f'{self.API_ENDPOINT}/core/items/{parent.uuid}/bundles'
         else:
             return list()
-
-        r_json = self.fetch_resource(url, params=None)
+        params = {}
+        if size is not None:
+            params['size'] = size
+        if page is not None:
+            params['page'] = page
+        if sort is not None:
+            params['sort'] = sort
+        r_json = self.fetch_resource(url, params=params)
         try:
             if single_result:
                 bundles.append(Bundle(r_json))
@@ -523,7 +540,8 @@ class DSpaceClient:
         url = f'{self.API_ENDPOINT}/core/items/{parent.uuid}/bundles'
         return Bundle(api_resource=parse_json(self.api_post(url, params=None, json={'name': name, 'metadata': {}})))
 
-    def get_bitstreams(self, uuid=None, bundle=None, page=0, size=20):
+    # PAGINATION
+    def get_bitstreams(self, uuid=None, bundle=None, page=0, size=20, sort=None):
         """
         Get a specific bitstream UUID, or all bitstreams for a specific bundle
         @param uuid:    UUID of a specific bitstream to retrieve
@@ -542,7 +560,14 @@ class DSpaceClient:
                 url = f'{self.API_ENDPOINT}/core/bundles/{bundle.uuid}/bitstreams'
                 print(f'Cannot find bundle bitstream links, will try to construct manually: {url}')
         # Perform the actual request. By now, our URL and parameter should be properly set
-        r_json = self.fetch_resource(url, params={'page': page, 'size': size})
+        params = {}
+        if size is not None:
+            params['size'] = size
+        if page is not None:
+            params['page'] = page
+        if sort is not None:
+            params['sort'] = sort
+        r_json = self.fetch_resource(url, params=params)
         if '_embedded' in r_json:
             if 'bitstreams' in r_json['_embedded']:
                 bitstreams = list()
@@ -603,7 +628,8 @@ class DSpaceClient:
             print(f'Error creating bitstream: {r.status_code}: {r.text}')
             return None
 
-    def get_communities(self, uuid=None, page=0, size=20, top=False):
+    # PAGINATION
+    def get_communities(self, uuid=None, page=0, size=20, sort=None, top=False):
         """
         Get communities - either all, for single UUID, or all top-level (ie no sub-communities)
         @param uuid:    string UUID if getting single community
@@ -613,7 +639,13 @@ class DSpaceClient:
         @return:        list of communities, or None if error
         """
         url = f'{self.API_ENDPOINT}/core/communities'
-        params = {'page': page, 'size': size}
+        params = {}
+        if size is not None:
+            params['size'] = size
+        if page is not None:
+            params['page'] = page
+        if sort is not None:
+            params['sort'] = sort
         if uuid is not None:
             try:
                 # This isn't used, but it'll throw a ValueError if not a valid UUID
@@ -657,7 +689,7 @@ class DSpaceClient:
             params = {'parent': parent}
         return Community(api_resource=parse_json(self.create_dso(url, params, data)))
 
-    def get_collections(self, uuid=None, community=None, page=0, size=20):
+    def get_collections(self, uuid=None, community=None, page=0, size=20, sort=None):
         """
         Get collections - all, or single UUID, or for a specific community
         @param uuid:        UUID string. If present, just a single collection is returned (overrides community arg)
@@ -668,7 +700,13 @@ class DSpaceClient:
                             for consistency of handling results, even the uuid search will be a list of one
         """
         url = f'{self.API_ENDPOINT}/core/collections'
-        params = {'page': page, 'size': size}
+        params = {}
+        if size is not None:
+            params['size'] = size
+        if page is not None:
+            params['page'] = page
+        if sort is not None:
+            params['sort'] = sort
         # First, handle case of UUID. It overrides the other arguments as it is a request for a single collection
         if uuid is not None:
             try:
@@ -821,10 +859,18 @@ class DSpaceClient:
             return None
         return self.delete_dso(user)
 
-    def get_users(self):
+    # PAGINATION
+    def get_users(self, page=0, size=20, sort=None):
         url = f'{self.API_ENDPOINT}/eperson/epersons'
         users = list()
-        r = self.api_get(url)
+        params = {}
+        if size is not None:
+            params['size'] = size
+        if page is not None:
+            params['page'] = page
+        if sort is not None:
+            params['sort'] = sort
+        r = self.api_get(url, params=params)
         r_json = parse_json(response=r)
         if '_embedded' in r_json:
             if 'epersons' in r_json['_embedded']:
