@@ -17,9 +17,11 @@ better abstracting and handling of HAL-like API responses, plus just all the oth
 import code
 import json
 import logging
+import sys
 
 import requests
 from requests import Request
+import pysolr
 import os
 from uuid import UUID
 from .models import *
@@ -54,6 +56,8 @@ class DSpaceClient:
     # Set up basic environment, variables
     session = None
     API_ENDPOINT = 'http://localhost:8080/server/api'
+    SOLR_ENDPOINT = 'http://localhost:8983/solr'
+    SOLR_AUTH = None
     if 'DSPACE_API_ENDPOINT' in os.environ:
         API_ENDPOINT = os.environ['DSPACE_API_ENDPOINT']
     LOGIN_URL = f'{API_ENDPOINT}/authn/login'
@@ -63,7 +67,10 @@ class DSpaceClient:
     PASSWORD = 'password'
     if 'DSPACE_API_PASSWORD' in os.environ:
         PASSWORD = os.environ['DSPACE_API_PASSWORD']
-
+    if 'SOLR_ENDPOINT' in os.environ:
+        SOLR_ENDPOINT = os.environ['SOLR_ENDPOINT']
+    if 'SOLR_AUTH' in os.environ:
+        SOLR_AUTH = os.environ['SOLR_AUTH']
     verbose = False
 
     # Simple enum for patch operation types
@@ -73,7 +80,8 @@ class DSpaceClient:
         REPLACE = 'replace'
         MOVE = 'move'
 
-    def __init__(self, api_endpoint=API_ENDPOINT, username=USERNAME, password=PASSWORD):
+    def __init__(self, api_endpoint=API_ENDPOINT, username=USERNAME, password=PASSWORD, solr_endpoint=SOLR_ENDPOINT,
+                 solr_auth=SOLR_AUTH):
         """
         Accept optional API endpoint, username, password arguments using the OS environment variables as defaults
         :param api_endpoint:    base path to DSpace REST API, eg. http://localhost:8080/server/api
@@ -85,6 +93,8 @@ class DSpaceClient:
         self.LOGIN_URL = f'{self.API_ENDPOINT}/authn/login'
         self.USERNAME = username
         self.PASSWORD = password
+        self.SOLR_ENDPOINT = solr_endpoint
+        self.solr = pysolr.Solr(url=solr_endpoint, always_commit=True, timeout=300, auth=solr_auth)
 
     def authenticate(self):
         """
@@ -913,3 +923,13 @@ class DSpaceClient:
             logging.debug(f'Updating XSRF token to {t}')
             self.session.headers.update({'X-XSRF-Token': t})
             self.session.cookies.update({'X-XSRF-Token': t})
+
+    #WRAPPER
+    def solr_query(self, query, filters=None, fields=None, start=0, rows=999999999):
+        if fields is None:
+            fields = []
+        if filters is None:
+            filters = []
+        return self.solr.search(query, fq=filters, start=start, rows=rows, **{
+            'fl': ','.join(fields)
+        })

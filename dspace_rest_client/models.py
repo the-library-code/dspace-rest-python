@@ -516,3 +516,5 @@ class RelationshipType(AddressableHALResource):
     """
     def __init__(self, api_resource):
         super(RelationshipType, self).__init__(api_resource)
+
+
