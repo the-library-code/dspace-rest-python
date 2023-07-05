@@ -195,7 +195,7 @@ class DSpaceClient:
                     logging.warning(f'Too many retries updating token: {r.status_code}: {r.text}')
                 else:
                     logging.debug("Retrying request with updated CSRF token")
-                    return self.api_post(url, params=params, json=json, retry=True)
+                    return self.api_post_uri(url, params=params, uri_list=uri_list, retry=True)
 
         return r
 
