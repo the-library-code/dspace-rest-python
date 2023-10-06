@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="dspace-rest-client",
-    version="0.1.7",
+    version="0.1.8",
     author="Kim Shepherd",
     author_email="kim@the-library-code.de",
     description="A DSpace 7 REST API client library",
@@ -13,6 +13,11 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/the-library-code/dspace-rest-client",
+    project_urls={
+        'Documentation': 'https://github.com/the-library-code/dspace-rest-python/blob/main/README.md',
+        'GitHub': 'https://github.com/the-library-code/dspace-rest-python',
+        'Changelog': 'https://github.com/the-library-code/dspace-rest-python/blob/main/CHANGELOG.md',
+    },
     classifiers=[
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
