@@ -674,15 +674,17 @@ class DSpaceClient:
         print(f'Performing get on {url}')
         # Perform actual get
         r_json = self.fetch_resource(url, params)
+        # Empty list
+        communities = list()
         if '_embedded' in r_json:
             if 'communities' in r_json['_embedded']:
-                communities = list()
                 for community_resource in r_json['_embedded']['communities']:
                     communities.append(Community(community_resource))
-                return communities
-
-        # Default return of empty list
-        return list()
+        elif 'uuid' in r_json:
+            # This is a single communities
+            communities.append(Community(r_json))
+        # Return list (populated or empty)
+        return communities
 
     def create_community(self, parent, data):
         """
@@ -735,20 +737,19 @@ class DSpaceClient:
 
         # Perform the actual request. By now, our URL and parameter should be properly set
         r_json = self.fetch_resource(url, params=params)
+        # Empty list
+        collections = list()
         if '_embedded' in r_json:
             # This is a list of collections
             if 'collections' in r_json['_embedded']:
-                collections = list()
                 for collection_resource in r_json['_embedded']['collections']:
                     collections.append(Collection(collection_resource))
-                return collections
         elif 'uuid' in r_json:
             # This is a single collection
-            collections = list()
             collections.append(Collection(r_json))
-            return collections
 
-        return list()
+        # Return list (populated or empty)
+        return collections
 
     def create_collection(self, parent, data):
         """
