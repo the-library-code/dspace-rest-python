@@ -16,12 +16,20 @@ from dspace_rest_client.models import Community, Collection, Item, Bundle, Bitst
 # DSPACE_API_ENDPOINT=
 # DSPACE_API_USERNAME=
 # DSPACE_API_PASSWORD=
+# USER_AGENT=
 url = 'http://localhost:8080/server/api'
 username = 'username@test.system.edu'
 password = 'password'
+url = 'https://demo.dspace.org/server/api'
+username = 'dspacedemo+admin@gmail.com'
+password = 'dspace'
 
 # Instantiate DSpace client
-d = DSpaceClient(api_endpoint=url, username=username, password=password)
+# Note the 'fake_user_agent' setting here -- this will set a string like the following, to get by Cloudfront:
+# Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36
+# The default is to *not* fake the user agent, and instead use the default of DSpace Python REST Client.
+# To specify a custom user agent, set the USER_AGENT env variable and leave/set fake_user_agent as False
+d = DSpaceClient(api_endpoint=url, username=username, password=password, fake_user_agent=True)
 
 # Authenticate against the DSpace client
 authenticated = d.authenticate()

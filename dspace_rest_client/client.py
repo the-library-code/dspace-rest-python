@@ -17,6 +17,7 @@ better abstracting and handling of HAL-like API responses, plus just all the oth
 import code
 import json
 import logging
+import pprint
 import sys
 
 import requests
@@ -28,7 +29,7 @@ from .models import *
 
 __all__ = ['DSpaceClient']
 
-logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.DEBUG)
 
 def parse_json(response):
     """
@@ -58,6 +59,7 @@ class DSpaceClient:
     API_ENDPOINT = 'http://localhost:8080/server/api'
     SOLR_ENDPOINT = 'http://localhost:8983/solr'
     SOLR_AUTH = None
+    USER_AGENT = 'DSpace Python REST Client'
     if 'DSPACE_API_ENDPOINT' in os.environ:
         API_ENDPOINT = os.environ['DSPACE_API_ENDPOINT']
     LOGIN_URL = f'{API_ENDPOINT}/authn/login'
@@ -71,6 +73,8 @@ class DSpaceClient:
         SOLR_ENDPOINT = os.environ['SOLR_ENDPOINT']
     if 'SOLR_AUTH' in os.environ:
         SOLR_AUTH = os.environ['SOLR_AUTH']
+    if 'USER_AGENT' in os.environ:
+        USER_AGENT = os.environ['USER_AGENT']
     verbose = False
 
     # Simple enum for patch operation types
@@ -81,7 +85,7 @@ class DSpaceClient:
         MOVE = 'move'
 
     def __init__(self, api_endpoint=API_ENDPOINT, username=USERNAME, password=PASSWORD, solr_endpoint=SOLR_ENDPOINT,
-                 solr_auth=SOLR_AUTH):
+                 solr_auth=SOLR_AUTH, fake_user_agent=False):
         """
         Accept optional API endpoint, username, password arguments using the OS environment variables as defaults
         :param api_endpoint:    base path to DSpace REST API, eg. http://localhost:8080/server/api
@@ -95,31 +99,63 @@ class DSpaceClient:
         self.PASSWORD = password
         self.SOLR_ENDPOINT = solr_endpoint
         self.solr = pysolr.Solr(url=solr_endpoint, always_commit=True, timeout=300, auth=solr_auth)
+        # If fake_user_agent was specified, use this string that is known (as of 2023-12-03) to succeed with
+        # requests to Cloudfront-protected API endpoints (tested on demo.dspace.org)
+        # Otherwise, the user agent will be the more helpful and accurate default of 'DSpace Python REST Client'
+        # To override the user agent to your own string, instead set the USER_AGENT environment variable first
+        # eg `export USER_AGENT="My Custom Agent String / 1.0`, and don't specify a value for fake_user_agent
+        if fake_user_agent:
+            self.USER_AGENT = 'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+                              'Chrome/39.0.2171.95 Safari/537.36'
+        # Set headers based on this
+        self.auth_request_headers = {'User-Agent': self.USER_AGENT}
+        self.request_headers = {'Content-type': 'application/json', 'User-Agent': self.USER_AGENT}
+        self.list_request_headers = {'Content-type': 'text-uri-list', 'User-Agent': self.USER_AGENT}
 
-    def authenticate(self):
+    def authenticate(self, retry=False):
         """
         Authenticate with the DSpace REST API. As with other operations, perform XSRF refreshes when necessary.
         After POST, check /authn/status and log success if the authenticated json property is true
         @return: response object
         """
+        # Set headers for requests made during authentication
         # Get and update CSRF token
-        r = self.session.post(self.LOGIN_URL)
+        r = self.session.post(self.LOGIN_URL, data={'user': self.USERNAME, 'password': self.PASSWORD},
+                              headers=self.auth_request_headers)
         self.update_token(r)
 
-        # POST Login
-        r = self.session.post(self.LOGIN_URL, data={'user': self.USERNAME, 'password': self.PASSWORD})
+        if r.status_code == 403:
+            # 403 Forbidden
+            # If we had a CSRF failure, retry the request with the updated token
+            # After speaking in #dev it seems that these do need occasional refreshes but I suspect
+            # it's happening too often for me, so check for accidentally triggering it
+            if retry:
+                logging.error(f'Too many retries updating token: {r.status_code}: {r.text}')
+                return False
+            else:
+                logging.debug("Retrying request with updated CSRF token")
+                return self.authenticate(retry=True)
+
+        if r.status_code == 401:
+            # 401 Unauthorized
+            # If we get a 401, this means a general authentication failure
+            logging.error(f'Authentication failure: invalid credentials for user {self.USERNAME}')
+            return False
+
+        # Update headers with new bearer token if present
         if 'Authorization' in r.headers:
             self.session.headers.update({'Authorization': r.headers.get('Authorization')})
 
         # Get and check authentication status
-        r = self.session.get(f'{self.API_ENDPOINT}/authn/status')
-        r_json = r.json()
-        if 'authenticated' in r_json and r_json['authenticated'] is True:
-            logging.info(f'Authenticated successfully as {self.USERNAME}')
-        else:
-            return False
+        r = self.session.get(f'{self.API_ENDPOINT}/authn/status', headers=self.request_headers)
+        if r.status_code == 200:
+            r_json = r.json()
+            if 'authenticated' in r_json and r_json['authenticated'] is True:
+                logging.info(f'Authenticated successfully as {self.USERNAME}')
+                return r_json['authenticated']
 
-        return r_json['authenticated']
+        # Default, return false
+        return False
 
     def refresh_token(self):
         """
@@ -137,7 +173,7 @@ class DSpaceClient:
         @param data:    any data to supply (typically not relevant for GET)
         @return:        Response from API
         """
-        r = self.session.get(url, params=params, data=data)
+        r = self.session.get(url, params=params, data=data, headers=self.request_headers)
         self.update_token(r)
         return r
 
@@ -151,8 +187,7 @@ class DSpaceClient:
         @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
         @return:        Response from API
         """
-        h = {'Content-type': 'application/json'}
-        r = self.session.post(url, json=json, params=params, headers=h)
+        r = self.session.post(url, json=json, params=params, headers=self.request_headers)
         self.update_token(r)
 
         if r.status_code == 403:
@@ -180,8 +215,7 @@ class DSpaceClient:
         @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
         @return:        Response from API
         """
-        h = {'Content-type': 'text/uri-list'}
-        r = self.session.post(url, data=uri_list, params=params, headers=h)
+        r = self.session.post(url, data=uri_list, params=params, headers=self.list_request_headers)
         self.update_token(r)
 
         if r.status_code == 403:
@@ -209,8 +243,7 @@ class DSpaceClient:
         @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
         @return:        Response from API
         """
-        h = {'Content-type': 'application/json'}
-        r = self.session.put(url, params=params, json=json, headers=h)
+        r = self.session.put(url, params=params, json=json, headers=self.request_headers)
         self.update_token(r)
 
         if r.status_code == 403:
@@ -238,8 +271,7 @@ class DSpaceClient:
         @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
         @return:        Response from API
         """
-        h = {'Content-type': 'application/json'}
-        r = self.session.delete(url, params=params, headers=h)
+        r = self.session.delete(url, params=params, headers=self.request_headers)
         self.update_token(r)
 
         if r.status_code == 403:
@@ -292,9 +324,8 @@ class DSpaceClient:
                 data["value"] = value
 
         # set headers
-        h = {'Content-type': 'application/json'}
         # perform patch request
-        r = self.session.patch(url, json=[data], headers=h)
+        r = self.session.patch(url, json=[data], headers=self.request_headers)
         self.update_token(r)
 
         if r.status_code == 403:
@@ -613,7 +644,7 @@ class DSpaceClient:
         properties = {'name': name, 'metadata': metadata, 'bundleName': bundle.name}
         payload = {'properties': json.dumps(properties) + ';application/json'}
         h = self.session.headers
-        h.update({'Content-Encoding': 'gzip'})
+        h.update({'Content-Encoding': 'gzip', 'User-Agent': self.USER_AGENT})
         req = Request('POST', url, data=payload, headers=h, files=files)
         prepared_req = self.session.prepare_request(req)
         r = self.session.send(prepared_req)
