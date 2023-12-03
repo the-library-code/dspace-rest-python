@@ -811,6 +811,31 @@ class DSpaceClient:
             logging.error(f'Invalid item UUID: {uuid}')
             return None
 
+    def get_items(self):
+        """
+        Get all archived items for a logged-in administrator. Admin only! Usually you will want to
+        use search or browse methods instead of this method
+        @return: A list of items, or an error
+        """
+        url = f'{self.API_ENDPOINT}/core/items'
+        # Empty item list
+        items = list()
+        # Perform the actual request
+        r_json = self.fetch_resource(url)
+        # Empty list
+        items = list()
+        if '_embedded' in r_json:
+            # This is a list of items
+            if 'collections' in r_json['_embedded']:
+                for item_resource in r_json['_embedded']['items']:
+                    items.append(Item(item_resource))
+        elif 'uuid' in r_json:
+            # This is a single item
+            items.append(Item(r_json))
+
+        # Return list (populated or empty)
+        return items
+
     def create_item(self, parent, item):
         """
         Create an item beneath the given parent collection
