@@ -674,11 +674,16 @@ class DSpaceClient:
             return None
 
     def download_bitstream(self, uuid=None):
+        """
+        Download bitstream and return full response object including headers, and content
+        @param uuid:
+        @return: full response object including headers, and content
+        """
         url = f'{self.API_ENDPOINT}/core/bitstreams/{uuid}/content'
         h = {'User-Agent': self.USER_AGENT, 'Authorization': self.get_short_lived_token()}
         r = self.api_get(url, headers=h)
         if r.status_code == 200:
-            return r.content
+            return r
 
     # PAGINATION
     def get_communities(self, uuid=None, page=0, size=20, sort=None, top=False):
