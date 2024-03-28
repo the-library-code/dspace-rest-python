@@ -107,7 +107,7 @@ class DSpaceClient:
         # Set headers based on this
         self.auth_request_headers = {'User-Agent': self.USER_AGENT}
         self.request_headers = {'Content-type': 'application/json', 'User-Agent': self.USER_AGENT}
-        self.list_request_headers = {'Content-type': 'text-uri-list', 'User-Agent': self.USER_AGENT}
+        self.list_request_headers = {'Content-type': 'text/uri-list', 'User-Agent': self.USER_AGENT}
 
     def authenticate(self, retry=False):
         """
