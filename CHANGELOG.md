@@ -1,12 +1,24 @@
 # Changelog
 
+### 0.1.10
+
+Date: 2024-04-04
+
+PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.10/
+
+**Changes**
+
+1. Correct content type header for URI tests: https://github.com/the-library-code/dspace-rest-python/pull/14 (thanks to @andreasgeissner)
+2. Small change to example script checks for successful bitstream header retrieve before printing
+3. Added new `MAINTAINING.md` to keep notes about build and publish process with the rest of the project files
+
 ### 0.1.9
 
 Date: 2023-12-03
 
 PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.9/
 
-** Changes **
+**Changes**
 
 1. All `print` statements in client module replaced with Python logging: https://github.com/the-library-code/dspace-rest-python/issues/12
 2. A customisable user agent header is added to each request, to allow for better logging at the
@@ -26,7 +38,7 @@ PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.8/
 
 Date: 2023-10-07
 
-** Changes**
+**Changes**
 
 Fixes a bug when using get_communities with a uuid parameter to fetch a single community, 
 see: https://github.com/the-library-code/dspace-rest-python/issues/8
