@@ -213,9 +213,10 @@ for top_community in top_communities:
                     print(f'{bitstream.name} ({bitstream.uuid}')
                     # Download this bitstream
                     r = d.download_bitstream(bitstream.uuid)
-                    print(f'\tHeaders (server info, not calculated locally)\n\tmd5: {r.headers.get("ETag")}\n'
-                          f'\tformat: {r.headers.get("Content-Type")}\n\tlength: {r.headers.get("Content-Length")}\n'
-                          f'\tLOCAL LEN(): {len(r.content)}')
+                    if r is not None and r.headers is not None:
+                        print(f'\tHeaders (server info, not calculated locally)\n\tmd5: {r.headers.get("ETag")}\n'
+                              f'\tformat: {r.headers.get("Content-Type")}\n\tlength: {r.headers.get("Content-Length")}\n'
+                              f'\tLOCAL LEN(): {len(r.content)}')
                     # Uncomment the below to get the binary data in content and then do something with it like
                     # print, or write to file, etc. You want to use the 'content' property of the response object
                     #
