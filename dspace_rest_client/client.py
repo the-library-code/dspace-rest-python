@@ -19,7 +19,6 @@ import logging
 
 import requests
 from requests import Request
-import pysolr
 import os
 from uuid import UUID
 from .models import *
@@ -95,7 +94,12 @@ class DSpaceClient:
         self.USERNAME = username
         self.PASSWORD = password
         self.SOLR_ENDPOINT = solr_endpoint
-        self.solr = pysolr.Solr(url=solr_endpoint, always_commit=True, timeout=300, auth=solr_auth)
+        self.solr = None
+        try:
+            import pysolr
+            self.solr = pysolr.Solr(url=solr_endpoint, always_commit=True, timeout=300, auth=solr_auth)
+        except Exception:
+            pass
         # If fake_user_agent was specified, use this string that is known (as of 2023-12-03) to succeed with
         # requests to Cloudfront-protected API endpoints (tested on demo.dspace.org)
         # Otherwise, the user agent will be the more helpful and accurate default of 'DSpace Python REST Client'
