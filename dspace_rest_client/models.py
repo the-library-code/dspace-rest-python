@@ -42,6 +42,16 @@ class HALResource:
             else:
                 self.links = {'self': {'href': None}}
 
+class AddressableHALResource(HALResource):
+    id = None
+    def __init__(self, api_resource=None):
+        super().__init__(api_resource)
+        if api_resource is not None:
+            if 'id' in api_resource:
+                self.id = api_resource['id']
+
+    def as_dict(self):
+        return {'id': self.id}
 
 class ExternalDataObject(HALResource):
     """
@@ -112,6 +122,7 @@ class DSpaceObject(HALResource):
 
         if dso is not None:
             api_resource = dso.as_dict()
+            self.links = dso.links.copy()
         if api_resource is not None:
             if 'id' in api_resource:
                 self.id = api_resource['id']
@@ -129,10 +140,6 @@ class DSpaceObject(HALResource):
             # alternatively - each item could implement getters, or a public method to return links
             if '_links' in api_resource:
                 self.links = api_resource['_links'].copy()
-            else:
-                # TODO - write 'construct self URI method'... all we need is type, UUID and some mapping of type
-                #  to the URI type segment eg community -> communities
-                self.links = {'self': {'href': ''}}
 
     def add_metadata(self, field, value, language=None, authority=None, confidence=-1, place=None):
         """
@@ -192,7 +199,7 @@ class DSpaceObject(HALResource):
             'handle': self.handle,
             'metadata': self.metadata,
             'lastModified': self.lastModified,
-            'type': self.type
+            'type': self.type,
         }
 
     def to_json(self):
@@ -226,12 +233,13 @@ class Item(SimpleDSpaceObject):
         """
         if dso is not None:
             api_resource = dso.as_dict()
-
-        super(Item, self).__init__(api_resource)
+            super(Item, self).__init__(dso=dso)
+        else:
+            super(Item, self).__init__(api_resource)
 
         if api_resource is not None:
             self.type = 'item'
-            self.inArchive = api_resource['inArchive'] if 'inArchive' in api_resource else False
+            self.inArchive = api_resource['inArchive'] if 'inArchive' in api_resource else True
             self.discoverable = api_resource['discoverable'] if 'discoverable' in api_resource else False
             self.withdrawn = api_resource['withdrawn'] if 'withdrawn' in api_resource else False
 
@@ -453,3 +461,60 @@ class User(SimpleDSpaceObject):
                      'email': self.email, 'requireCertificate': self.requireCertificate,
                      'selfRegistered': self.selfRegistered}
         return {**dso_dict, **user_dict}
+
+class InProgressSubmission(AddressableHALResource):
+    lastModified = None
+    step = None
+    sections = {}
+    type = None
+
+    def __init__(self, api_resource):
+        super(InProgressSubmission, self).__init__(api_resource)
+        if 'lastModified' in api_resource:
+            self.lastModified = api_resource['lastModified']
+        if 'step' in api_resource:
+            self.step = api_resource['lastModified']
+        if 'sections' in api_resource:
+            self.sections = api_resource['sections'].copy()
+        if 'type' in api_resource:
+            self.lastModified = api_resource['lastModified']
+
+    def as_dict(self):
+        parent_dict = super(InProgressSubmission, self).as_dict()
+        dict = {
+            'lastModified': self.lastModified,
+            'step': self.step,
+            'sections': self.sections,
+            'type': self.type
+        }
+        return {**parent_dict, **dict}
+
+class WorkspaceItem(InProgressSubmission):
+
+    def __init__(self, api_resource):
+        super(WorkspaceItem, self).__init__(api_resource)
+
+    def as_dict(self):
+        return super(WorkspaceItem, self).as_dict()
+
+class EntityType(AddressableHALResource):
+    """
+    Extends Addressable HAL Resource to model an entity type (aka item type)
+    used in entities and relationships. For example, Publication, Person, Project and Journal
+    are all common entity types used in DSpace 7+
+    """
+    def __init__(self, api_resource):
+        super(EntityType, self).__init__(api_resource)
+        if 'label' in api_resource:
+            self.label = api_resource['label']
+        if 'type' in api_resource:
+            self.label = api_resource['type']
+
+class RelationshipType(AddressableHALResource):
+    """
+    TODO: RelationshipType
+    """
+    def __init__(self, api_resource):
+        super(RelationshipType, self).__init__(api_resource)
+
+
