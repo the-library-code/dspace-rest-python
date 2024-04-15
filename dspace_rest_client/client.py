@@ -687,6 +687,21 @@ class DSpaceClient:
             params = {'parent': parent}
         return Collection(api_resource=parse_json(self.create_dso(url, params, data)))
 
+    def get_items(self):
+        """
+        Get all items
+        @return:        list of Item objects
+        """
+        url = f'{self.API_ENDPOINT}/core/items'
+        items = list()
+        r = self.api_get(url)
+        r_json = parse_json(r)
+        if '_embedded' in r_json:
+            if 'items' in r_json['_embedded']:
+                for item_resource in r_json['_embedded']['items']:
+                    items.append(Item(item_resource))
+        return items
+
     def get_item(self, uuid):
         """
         Get an item, given its UUID
