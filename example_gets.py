@@ -30,7 +30,7 @@ d = DSpaceClient(api_endpoint=url, username=username, password=password, fake_us
 # Authenticate against the DSpace client
 authenticated = d.authenticate()
 if not authenticated:
-    print(f'Error logging in! Giving up.')
+    print('Error logging in! Giving up.')
     exit(1)
 
 # Retrieving objects - now that we know there is some data in the repository we can demonstrate
