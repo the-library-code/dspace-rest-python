@@ -665,7 +665,7 @@ class DSpaceClient:
         return Bundle(api_resource=parse_json(self.api_post(url, params=None, json={'name': name, 'metadata': {}})))
 
     # PAGINATION
-    def get_bitstreams(self, uuid=None, bundle=None, page=0, size=20, sort=None):
+    def get_bitstreams(self, uuid=None, bundle=None, page=0, size=20, sort=None, embeds=None):
         """
         Get a specific bitstream UUID, or all bitstreams for a specific bundle
         @param uuid:    UUID of a specific bitstream to retrieve
@@ -674,6 +674,8 @@ class DSpaceClient:
         @param size:    Size of results per page (default: 20)
         @return:        list of python Bitstream objects
         """
+        if embeds is None:
+            embeds = []
         url = f'{self.API_ENDPOINT}/core/bitstreams/{uuid}'
         if uuid is None and bundle is None:
             return list()
@@ -691,12 +693,15 @@ class DSpaceClient:
             params['page'] = page
         if sort is not None:
             params['sort'] = sort
+        if len(embeds) > 0:
+            params['embed'] = ','.join(embeds)
         r_json = self.fetch_resource(url, params=params)
         if '_embedded' in r_json:
             if 'bitstreams' in r_json['_embedded']:
                 bitstreams = list()
                 for bitstream_resource in r_json['_embedded']['bitstreams']:
-                    bitstreams.append(Bitstream(bitstream_resource))
+                    bitstream = Bitstream(bitstream_resource)
+                    bitstreams.append(bitstream)
                 return bitstreams
 
     @paginated('bitstreams', Bitstream)
