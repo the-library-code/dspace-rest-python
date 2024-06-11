@@ -517,4 +517,80 @@ class RelationshipType(AddressableHALResource):
     def __init__(self, api_resource):
         super(RelationshipType, self).__init__(api_resource)
 
+class SearchResult(HALResource):
+"""
+{
+  "query":"my query",
+  "scope":"9076bd16-e69a-48d6-9e41-0238cb40d863",
+  "appliedFilters": [
+      {
+        "filter" : "title",
+        "operator" : "notcontains",
+        "value" : "abcd",
+        "label" : "abcd"
+      },
+      {
+        "filter" : "author",
+        "operator" : "authority",
+        "value" : "1234",
+        "label" : "Smith, Donald"
+      }
+  ],
+  "sort" : {
+    "by" : "dc.date.issued",
+    "order" : "asc"
+  },
+  "_embedded" : {
+    "searchResults": {
+      "_embedded": {
+        "objects" : [...],
+        },
 
+      "_links": {
+        "first": {
+          "href": "/api/discover/search/objects?query=my+query&scope=9076bd16-e69a-48d6-9e41-0238cb40d863&f.title=abcd,notcontains&f.author=1234,authority&page=0&size=5"
+        },
+        "self": {
+          "href": "/api/discover/search/objects?query=my+query&scope=9076bd16-e69a-48d6-9e41-0238cb40d863&f.title=abcd,notcontains&f.author=1234,authority&page=0&size=5"
+        },
+        "next": {
+          "href": "/api/discover/search/objects?query=my+query&scope=9076bd16-e69a-48d6-9e41-0238cb40d863&f.title=abcd,notcontains&f.author=1234,authority&page=1&size=5"
+        },
+        "last": {
+          "href": "/api/discover/search/objects?query=my+query&scope=9076bd16-e69a-48d6-9e41-0238cb40d863&f.title=abcd,notcontains&f.author=1234,authority&page=2&size=5"
+        }
+      },
+      "page": {
+        "number": 0,
+        "size": 20,
+        "totalElements": 12,
+        "totalPages": 3
+      }
+    }, "facets"... (TODO)
+"""
+class InProgressSubmission(AddressableHALResource):
+    lastModified = None
+    step = None
+    sections = {}
+    type = None
+
+    def __init__(self, api_resource):
+        super(InProgressSubmission, self).__init__(api_resource)
+        if 'lastModified' in api_resource:
+            self.lastModified = api_resource['lastModified']
+        if 'step' in api_resource:
+            self.step = api_resource['step']
+        if 'sections' in api_resource:
+            self.sections = api_resource['sections'].copy()
+        if 'type' in api_resource and self.type is not None:
+            self.type = api_resource['type']
+
+    def as_dict(self):
+        parent_dict = super(InProgressSubmission, self).as_dict()
+        dict = {
+            'lastModified': self.lastModified,
+            'step': self.step,
+            'sections': self.sections,
+            'type': self.type
+        }
+        return {**parent_dict, **dict}
