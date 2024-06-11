@@ -1,5 +1,16 @@
 # Changelog
 
+### 0.1.11
+
+Date: 2024-06-11
+
+PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.11/
+
+**Changes**
+
+1. Small changes to maintenance docs and publish script
+2. Correct required packages in `requirements.txt` and `setup.py` as per https://github.com/the-library-code/dspace-rest-python/issues/16 (reported by @alanorth)
+
 ### 0.1.10
 
 Date: 2024-04-04
