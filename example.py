@@ -31,7 +31,7 @@ d = DSpaceClient(api_endpoint=url, username=username, password=password, fake_us
 # Authenticate against the DSpace client
 authenticated = d.authenticate()
 if not authenticated:
-    print(f'Error logging in! Giving up.')
+    print('Error logging in! Giving up.')
     exit(1)
 
 # Put together some basic Community data.
@@ -58,7 +58,7 @@ new_community = d.create_community(parent=community_parent, data=community_data)
 if isinstance(new_community, Community) and new_community.uuid is not None:
     print(f'New community created! Handle: {new_community.handle}')
 else:
-    print(f'Error! Giving up.')
+    print('Error! Giving up.')
     exit(1)
 
 # Update the community metadata
@@ -93,7 +93,7 @@ new_collection = d.create_collection(parent=collection_parent, data=collection_d
 if isinstance(new_collection, Collection) and new_collection.uuid is not None:
     print(f'New collection created! Handle: {new_collection.handle}')
 else:
-    print(f'Error! Giving up.')
+    print('Error! Giving up.')
     exit(1)
 
 # Put together some basic Item data.
@@ -146,7 +146,7 @@ new_item = d.create_item(parent=new_collection.uuid, item=item)
 if isinstance(new_item, Item) and new_item.uuid is not None:
     print(f'New item created! Handle: {new_item.handle}')
 else:
-    print(f'Error! Giving up.')
+    print('Error! Giving up.')
     exit(1)
 
 # Add a single metadata field+value to the item (PATCH operation)
@@ -159,7 +159,7 @@ new_bundle = d.create_bundle(parent=new_item, name='ORIGINAL')
 if isinstance(new_bundle, Bundle) and new_bundle.uuid is not None:
     print(f'New bundle created! UUID: {new_bundle.uuid}')
 else:
-    print(f'Error! Giving up.')
+    print('Error! Giving up.')
     exit(1)
 
 # Create and upload a new bitstream using the LICENSE.txt file in this project
@@ -181,10 +181,10 @@ new_bitstream = d.create_bitstream(bundle=new_bundle, name=file_name,
 if isinstance(new_bitstream, Bitstream) and new_bitstream.uuid is not None:
     print(f'New bitstream created! UUID: {new_bitstream.uuid}')
 else:
-    print(f'Error! Giving up.')
+    print('Error! Giving up.')
     exit(1)
 
-print(f'All finished with example data creation. Visit your test repository to review created objects')
+print('All finished with example data creation. Visit your test repository to review created objects')
 
 # Retrieving objects - now that we know there is some data in the repository we can demonstrate
 # some simple ways of retrieving and iterating DSOs

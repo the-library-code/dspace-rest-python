@@ -7,7 +7,6 @@ Example Python 3 application using the dspace.py API client library to retrieve 
 """
 
 from dspace_rest_client.client import DSpaceClient
-from dspace_rest_client.models import Community, Collection, Item, Bundle, Bitstream
 
 # Example variables needed for authentication and basic API requests
 # SET THESE TO MATCH YOUR TEST SYSTEM BEFORE RUNNING THE EXAMPLE SCRIPT
@@ -30,7 +29,7 @@ d = DSpaceClient(api_endpoint=url, username=username, password=password, fake_us
 # Authenticate against the DSpace client
 authenticated = d.authenticate()
 if not authenticated:
-    print(f'Error logging in! Giving up.')
+    print('Error logging in! Giving up.')
     exit(1)
 
 # Retrieving objects - now that we know there is some data in the repository we can demonstrate
