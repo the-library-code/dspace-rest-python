@@ -207,6 +207,21 @@ class DSpaceClient:
                     logging.debug("Retrying request with updated CSRF token")
                     return self.api_post(url, params=params, json=json, retry=True)
 
+        # we need to log in again, if there is login error. This is a bad
+        # solution copied from the past
+        elif r.status_code == 401:
+            r_json = parse_json(r)
+            if 'message' in r_json and 'Authentication is required' in r_json['message']:
+                if retry:
+                    logging.error(
+                        'API Post: Already retried... something must be wrong')
+                else:
+                    logging.debug("API Post: Retrying request with updated CSRF token")
+                    # try to authenticate
+                    self.authenticate()
+                    # Try to authenticate and repeat the request 3 times -
+                    # if it won't happen log error
+                    return self.api_post(url, params=params, json=json, retry=False)
         return r
 
     def api_post_uri(self, url, params, uri_list, retry=False):
