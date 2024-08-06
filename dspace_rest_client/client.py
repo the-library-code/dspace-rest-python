@@ -389,7 +389,7 @@ class DSpaceClient:
             results = r_json['_embedded']['searchResult']['_embedded']['objects']
             for result in results:
                 resource = result['_embedded']['indexableObject']
-                dso = DSpaceObject(resource)
+                dso = SimpleDSpaceObject(resource)
                 dsos.append(dso)
         except (TypeError, ValueError) as err:
             logging.error(f'error parsing search result json {err}')
