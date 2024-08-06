@@ -1,5 +1,16 @@
 # Changelog
 
+### 0.1.12
+
+Date: 2024-08-06
+
+PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.12/
+
+**Changes**
+
+1. Initialise search result objects as `SimpleDSpaceObject` rather than base `DSpaceObject` class
+2. Introduce / tidy new `SearchResult` model as work towards https://github.com/the-library-code/dspace-rest-python/issues/17
+
 ### 0.1.11
 
 Date: 2024-06-11
