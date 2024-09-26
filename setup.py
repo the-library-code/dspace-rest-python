@@ -19,7 +19,6 @@ setuptools.setup(
         'Changelog': 'https://github.com/the-library-code/dspace-rest-python/blob/main/CHANGELOG.md',
     },
     classifiers=[
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
