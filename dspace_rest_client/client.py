@@ -263,6 +263,35 @@ class DSpaceClient:
 
         return r
 
+    def api_put_uri(self, url, params, uri_list, retry=False):
+        """
+        Perform a PUT request. Refresh XSRF token if necessary.
+        PUTs are typically used to update objects.
+        @param url:     DSpace REST API URL
+        @param params:  Any parameters to include (eg ?parent=abbc-....)
+        @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
+        @return:        Response from API
+        """
+        r = self.session.put(url, params=params, data=uri_list, headers=self.list_request_headers)
+        self.update_token(r)
+
+        if r.status_code == 403:
+            # 403 Forbidden
+            # If we had a CSRF failure, retry the request with the updated token
+            # After speaking in #dev it seems that these do need occasional refreshes but I suspect
+            # it's happening too often for me, so check for accidentally triggering it
+            logging.debug(r.text)
+            # Parse response
+            r_json = parse_json(r)
+            if 'message' in r_json and 'CSRF token' in r_json['message']:
+                if retry:
+                    logging.warning(f'Too many retries updating token: {r.status_code}: {r.text}')
+                else:
+                    logging.debug("Retrying request with updated CSRF token")
+                    return self.api_put_uri(url, params=params, uri_list=uri_list, retry=True)
+
+        return r
+
     def api_delete(self, url, params, retry=False):
         """
         Perform a DELETE request. Refresh XSRF token if necessary.
@@ -1025,3 +1054,57 @@ class DSpaceClient:
         return self.solr.search(query, fq=filters, start=start, rows=rows, **{
             'fl': ','.join(fields)
         })
+
+    def get_items_from_collection(self, collection_id, page=0, size=1000):
+        """
+        Get all items
+        @return:        list of Item objects
+        """
+        url = f'{self.API_ENDPOINT}/discover/search/objects?sort=dc.date.accessioned,DESC&page={page}&size={size}&scope={collection_id}&dsoType=ITEM&embed=thumbnail'
+
+        items = list()
+        r = self.api_get(url)
+        r_json = parse_json(r)
+        if '_embedded' in r_json:
+            if 'searchResult' in r_json['_embedded']:
+                if '_embedded' in r_json['_embedded']['searchResult']:
+                    for item_resource in r_json['_embedded']['searchResult']['_embedded']['objects']:
+                        items.append(Item(item_resource['_embedded']['indexableObject']))
+
+        return items
+
+    def get_bundle_by_name(self, name, item_uuid):
+        """
+        Get a bundle by name for a specific item
+        @param name:    Name of the bundle
+        @param item_uuid: UUID of the item
+        @return:        Bundle object
+        """
+        url = f'{self.API_ENDPOINT}/core/items/{item_uuid}/bundles'
+        r_json = self.fetch_resource(url, params=None)
+        if '_embedded' in r_json:
+            if 'bundles' in r_json['_embedded']:
+                for bundle in r_json['_embedded']['bundles']:
+                    if bundle['name'] == name:
+                        return Bundle(bundle)
+        return None
+
+    def get_resource_policy(self, bundle_uuid):
+        """
+        Get a resource policy for a specific bundle
+        """
+        url = f'{self.API_ENDPOINT}/authz/resourcepolicies/search/resource?uuid={bundle_uuid}&embed=eperson&embed=group'
+        r = self.api_get(url)
+        r_json = parse_json(r)
+        if '_embedded' in r_json:
+            if 'resourcepolicies' in r_json['_embedded']:
+                return r_json['_embedded']['resourcepolicies'][0]
+
+    def update_resource_policy_group(self, policy_id, group_uuid):
+        """
+        Update a resource policy with a new group
+        """
+        url = f'{self.API_ENDPOINT}/authz/resourcepolicies/{policy_id}/group'
+        body = f'{self.API_ENDPOINT}/eperson/groups/{group_uuid}'
+        r = self.api_put_uri(url, None, body, False)
+        return r
