@@ -208,6 +208,21 @@ class DSpaceClient:
                     _logger.debug("Retrying request with updated CSRF token")
                     return self.api_post(url, params=params, json=json, retry=True)
 
+        # we need to log in again, if there is login error. This is a bad
+        # solution copied from the past
+        elif r.status_code == 401:
+            r_json = parse_json(r)
+            if 'message' in r_json and 'Authentication is required' in r_json['message']:
+                if retry:
+                    logging.error(
+                        'API Post: Already retried... something must be wrong')
+                else:
+                    logging.debug("API Post: Retrying request with updated CSRF token")
+                    # try to authenticate
+                    self.authenticate()
+                    # Try to authenticate and repeat the request 3 times -
+                    # if it won't happen log error
+                    return self.api_post(url, params=params, json=json, retry=False)
         return r
 
     def api_post_uri(self, url, params, uri_list, retry=False):
@@ -308,15 +323,15 @@ class DSpaceClient:
         @see https://github.com/DSpace/RestContract/blob/main/metadata-patch.md
         """
         if url is None:
-            _logger.error(f'Missing required URL argument')
+            logging.error('Missing required URL argument')
             return None
         if path is None:
-            _logger.error(f'Need valid path eg. /withdrawn or /metadata/dc.title/0/language')
+            logging.error('Need valid path eg. /withdrawn or /metadata/dc.title/0/language')
             return None
         if (operation == self.PatchOperation.ADD or operation == self.PatchOperation.REPLACE
                 or operation == self.PatchOperation.MOVE) and value is None:
             # missing value required for add/replace/move operations
-            _logger.error(f'Missing required "value" argument for add/replace/move operations')
+            logging.error('Missing required "value" argument for add/replace/move operations')
             return None
 
         # compile patch data
@@ -465,8 +480,8 @@ class DSpaceClient:
             return None
         dso_type = type(dso)
         if not isinstance(dso, SimpleDSpaceObject):
-            _logger.error(f'Only SimpleDSpaceObject types (eg Item, Collection, Community) '
-                  f'are supported by generic update_dso PUT.')
+            logging.error('Only SimpleDSpaceObject types (eg Item, Collection, Community) '
+                  'are supported by generic update_dso PUT.')
             return dso
         try:
             # Get self URI from HAL links
@@ -512,12 +527,12 @@ class DSpaceClient:
         """
         if dso is None:
             if url is None:
-                _logger.error(f'Need a DSO or a URL to delete')
+                logging.error('Need a DSO or a URL to delete')
                 return None
         else:
             if not isinstance(dso, SimpleDSpaceObject):
-                _logger.error(f'Only SimpleDSpaceObject types (eg Item, Collection, Community, EPerson) '
-                      f'are supported by generic update_dso PUT.')
+                logging.error('Only SimpleDSpaceObject types (eg Item, Collection, Community, EPerson) '
+                      'are supported by generic update_dso PUT.')
                 return dso
             # Get self URI from HAL links
             url = dso.links['self']['href']
@@ -958,7 +973,7 @@ class DSpaceClient:
 
     def delete_user(self, user):
         if not isinstance(user, User):
-            _logger.error(f'Must be a valid user')
+            logging.error('Must be a valid user')
             return None
         return self.delete_dso(user)
 
