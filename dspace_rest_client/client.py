@@ -947,6 +947,23 @@ class DSpaceClient:
 
         return dso_type(api_resource=parse_json(r))
 
+    def remove_metadata(self, dso, field, place):
+        if dso is None or field is None or place is None or not isinstance(dso, DSpaceObject):
+            # TODO: separate these tests, and add better error handling
+            logging.error('Invalid or missing DSpace object, field or value string')
+            return self
+        dso_type = type(dso)
+
+        # Place can be 0+ integer, or a hyphen - meaning "last"
+        path = f'/metadata/{field}/{place}'
+
+        url = dso.links['self']['href']
+
+        r = self.api_patch(
+            url=url, operation=self.PatchOperation.REMOVE, path=path, value=None)
+
+        return dso_type(api_resource=parse_json(r))
+
     def create_user(self, user, token=None):
         """
         Create a user
