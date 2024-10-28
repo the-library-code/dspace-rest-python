@@ -73,6 +73,7 @@ class DSpaceClient:
     if 'USER_AGENT' in os.environ:
         USER_AGENT = os.environ['USER_AGENT']
     verbose = False
+    ITER_PAGE_SIZE = 20
 
     # Simple enum for patch operation types
     class PatchOperation:
@@ -570,6 +571,29 @@ class DSpaceClient:
 
         return bundles
 
+    def get_bundles_iter(self, parent, sort=None):
+        """
+        Get bundles for an item, automatically handling pagination by requesting the next page when all items from one page have been consumed
+        @param parent:  python Item object, from which the UUID will be referenced in the URL.
+        @return:        Iterator of Bundle
+        """
+        url = f'{self.API_ENDPOINT}/core/items/{parent.uuid}/bundles'
+        params = {}
+        params['size'] = self.ITER_PAGE_SIZE
+        if sort is not None:
+            params['sort'] = sort
+
+        while url is not None:
+            logging.debug(f'Performing get on {url}')
+            r_json = self.fetch_resource(url, params)
+            for resource in r_json.get('_embedded', {}).get('bundles', []):
+                yield Bundle(resource)
+
+            if 'next' in r_json.get('_links', {}):
+                url = r_json['_links']['next']['href']
+            else:
+                url = None
+
     def create_bundle(self, parent=None, name='ORIGINAL'):
         """
         Create new bundle in the specified item
@@ -619,6 +643,32 @@ class DSpaceClient:
                 for bitstream_resource in r_json['_embedded']['bitstreams']:
                     bitstreams.append(Bitstream(bitstream_resource))
                 return bitstreams
+
+    def get_bitstreams_iter(self, bundle, sort=None):
+        """
+        Get all bitstreams for a specific bundle, automatically handling pagination by requesting the next page when all items from one page have been consumed
+        @param bundle:  A python Bundle object to parse for bitstream links to retrieve
+        @return:        Iterator of Bitstream
+        """
+        if 'bitstreams' in bundle.links:
+            url = bundle.links['bitstreams']['href']
+        else:
+            url = f'{self.API_ENDPOINT}/core/bundles/{bundle.uuid}/bitstreams'
+            logging.warning(f'Cannot find bundle bitstream links, will try to construct manually: {url}')
+        params = {}
+        if sort is not None:
+            params['sort'] = sort
+        params['size'] = self.ITER_PAGE_SIZE
+
+        while url is not None:
+            r_json = self.fetch_resource(url, params=params)
+            for bitstream_resource in r_json.get('_embedded', {}).get('bitstreams', []):
+                yield Bitstream(bitstream_resource)
+
+            if 'next' in r_json.get('_links', {}):
+                url = r_json['_links']['next']['href']
+            else:
+                url = None
 
     def create_bitstream(self, bundle=None, name=None, path=None, mime=None, metadata=None, retry=False):
         """
@@ -733,6 +783,29 @@ class DSpaceClient:
         # Return list (populated or empty)
         return communities
 
+    # TODO: does top paginate the same way?
+    def get_communities_iter(self, sort=None, top=False):
+        """
+        Get communities as an iterator, automatically handling pagination by requesting the next page when all items from one page have been consumed
+        @param top:     whether to restrict search to top communities (default: false)
+        @return: Iterator of Community
+        """
+        url = f'{self.API_ENDPOINT}/core/communities'
+        params = {}
+        if sort is not None:
+            params['sort'] = sort
+        params['size'] = self.ITER_PAGE_SIZE
+
+        while url is not None:
+            r_json = self.fetch_resource(url, params)
+            for community_resource in r_json.get('_embedded', {}).get('communities', []):
+                yield Community(community_resource)
+
+            if 'next' in r_json.get('_links', {}):
+                url = r_json['_links']['next']['href']
+            else:
+                url = None
+
     def create_community(self, parent, data):
         """
         Create a community, either top-level or beneath a given parent
@@ -797,6 +870,30 @@ class DSpaceClient:
 
         # Return list (populated or empty)
         return collections
+
+    def get_collections_iter(self, community=None, sort=None):
+        """
+        Get collections as an iterator, automatically handling pagination by requesting the next page when all items from one page have been consumed
+        @param community:   Community object. If present, collections for a community
+        @return:            Iterator of Collection
+        """
+        url = f'{self.API_ENDPOINT}/core/collections'
+        params = {}
+        params['size'] = self.ITER_PAGE_SIZE
+
+        if community is not None:
+            if 'collections' in community.links and 'href' in community.links['collections']:
+                url = community.links['collections']['href']
+
+        while url is not None:
+            r_json = self.fetch_resource(url, params=params)
+            for collection_resource in r_json.get('_embedded', {}).get('communities', []):
+                yield Collection(collection_resource)
+
+            if 'next' in r_json.get('_links', {}):
+                url = r_json['_links']['next']['href']
+            else:
+                url = None
 
     def create_collection(self, parent, data):
         """
