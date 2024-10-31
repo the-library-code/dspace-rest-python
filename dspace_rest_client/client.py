@@ -83,7 +83,7 @@ class DSpaceClient:
         REPLACE = 'replace'
         MOVE = 'move'
 
-    def paginated(embed_name, item_class):
+    def paginated(embed_name, item_constructor, embedding=lambda x: x):
         def decorator(fun):
             @functools.wraps(fun)
             def decorated(self, *args, **kwargs):
@@ -91,9 +91,9 @@ class DSpaceClient:
                     params['size'] = self.ITER_PAGE_SIZE
 
                     while url is not None:
-                        r_json = self.fetch_resource(url, params)
+                        r_json = embedding(self.fetch_resource(url, params))
                         for resource in r_json.get('_embedded', {}).get(embed_name, []):
-                            yield item_class(resource)
+                            yield item_constructor(resource)
 
                         if 'next' in r_json.get('_links', {}):
                             url = r_json['_links']['next']['href']
@@ -422,6 +422,36 @@ class DSpaceClient:
             logging.error(f'error parsing search result json {err}')
 
         return dsos
+
+    @paginated(
+        embed_name='objects',
+        item_constructor=lambda x: SimpleDSpaceObject(x['_embedded']['indexableObject']),
+        embedding=lambda x: x['_embedded']['searchResult']
+    )
+    def search_objects_iter(do_paginate, self, query=None, scope=None, filters=None, dso_type=None, sort=None):
+        """
+        Do a basic search as in search_objects, automatically handling pagination by requesting the next page when all items from one page have been consumed
+        @param query:   query string
+        @param scope:   uuid to limit search scope, eg. owning collection, parent community, etc.
+        @param filters: discovery filters as dict eg. {'f.entityType': 'Publication,equals', ... }
+        @param sort: sort eg. 'title,asc'
+        @param dso_type: DSO type to further filter results
+        @return:        Iterator of SimpleDSpaceObject
+        """
+        if filters is None:
+            filters = {}
+        url = f'{self.API_ENDPOINT}/discover/search/objects'
+        params = {}
+        if query is not None:
+            params['query'] = query
+        if scope is not None:
+            params['scope'] = scope
+        if dso_type is not None:
+            params['dsoType'] = dso_type
+        if sort is not None:
+            params['sort'] = sort
+
+        return do_paginate(url, {**params, **filters})
 
     def fetch_resource(self, url, params=None):
         """
