@@ -792,7 +792,6 @@ class DSpaceClient:
         # Return list (populated or empty)
         return communities
 
-    # TODO: does top paginate the same way?
     @paginated('communities', Community)
     def get_communities_iter(do_paginate, self, sort=None, top=False):
         """
