@@ -794,13 +794,17 @@ class DSpaceClient:
 
     # TODO: does top paginate the same way?
     @paginated('communities', Community)
-    def get_communities_iter(self, sort=None, top=False):
+    def get_communities_iter(do_paginate, self, sort=None, top=False):
         """
         Get communities as an iterator, automatically handling pagination by requesting the next page when all items from one page have been consumed
         @param top:     whether to restrict search to top communities (default: false)
         @return: Iterator of Community
         """
-        url = f'{self.API_ENDPOINT}/core/communities'
+        if top:
+            url = f'{url}/core/communities/search/top'
+        else:
+            url = f'{self.API_ENDPOINT}/core/communities'
+
         params = {}
         if sort is not None:
             params['sort'] = sort
