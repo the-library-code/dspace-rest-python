@@ -23,6 +23,7 @@ import pysolr
 import os
 from uuid import UUID
 from .models import *
+from . import __version__
 
 __all__ = ['DSpaceClient']
 
@@ -56,7 +57,7 @@ class DSpaceClient:
     API_ENDPOINT = 'http://localhost:8080/server/api'
     SOLR_ENDPOINT = 'http://localhost:8983/solr'
     SOLR_AUTH = None
-    USER_AGENT = 'DSpace Python REST Client'
+    USER_AGENT = f'DSpace-Python-REST-Client/{__version__}'
     if 'DSPACE_API_ENDPOINT' in os.environ:
         API_ENDPOINT = os.environ['DSPACE_API_ENDPOINT']
     LOGIN_URL = f'{API_ENDPOINT}/authn/login'

@@ -1,11 +1,12 @@
 import setuptools
+from dspace_rest_client import __version__
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="dspace-rest-client",
-    version="0.1.12",
+    version=__version__,
     author="Kim Shepherd",
     author_email="kim@the-library-code.de",
     description="A DSpace 7 REST API client library",
