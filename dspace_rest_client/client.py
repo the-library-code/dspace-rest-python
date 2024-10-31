@@ -1066,6 +1066,12 @@ class DSpaceClient:
 
     # PAGINATION
     def get_users(self, page=0, size=20, sort=None):
+        """
+        Get a list of users (epersons) in the DSpace instance
+        @param page: Integer for page / offset of results. Default: 0
+        @param size: Integer for page size. Default: 20 (same as REST API default)
+        @return:     list of User objects
+        """
         url = f'{self.API_ENDPOINT}/eperson/epersons'
         users = list()
         params = {}
@@ -1082,6 +1088,18 @@ class DSpaceClient:
                 for user_resource in r_json['_embedded']['epersons']:
                     users.append(User(user_resource))
         return users
+
+    @paginated('epersons', User)
+    def get_users_iter(do_paginate, self, sort=None):
+        """
+        Get an iterator of users (epersons) in the DSpace instance, automatically handling pagination by requesting the next page when all items from one page have been consumed
+        @return:     Iterator of User
+        """
+        url = f'{self.API_ENDPOINT}/eperson/epersons'
+        if sort is not None:
+            params['sort'] = sort
+
+        return do_paginate(url, params)
 
     def create_group(self, group):
         """
