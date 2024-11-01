@@ -830,7 +830,7 @@ class DSpaceClient:
         @return: Iterator of Community
         """
         if top:
-            url = f'{url}/core/communities/search/top'
+            url = f'{self.API_ENDPOINT}/core/communities/search/top'
         else:
             url = f'{self.API_ENDPOINT}/core/communities'
 
