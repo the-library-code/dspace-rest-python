@@ -872,6 +872,53 @@ class DSpaceClient:
             return None
         return Item(api_resource=parse_json(self.create_dso(url, params=params, data=item.as_dict())))
 
+    def create_item_version(self, item_uuid, summary=None):
+        """
+        Create a new version of an existing item.
+        @param item_uuid: UUID of the item to version
+        @param summary: Optional summary text for the new version
+        @return: JSON response containing the new version information or None if an error occurs
+        """
+        url = f"{self.API_ENDPOINT}/versioning/versions"
+        params = {}
+        if summary is not None:
+            params["summary"] = summary
+
+        # Construct the item URI
+        item_uri = f"{self.API_ENDPOINT}/core/items/{item_uuid}"
+
+        # Send the POST request with Content-Type:text/uri-list
+        response = self.api_post_uri(url, params=params, uri_list=item_uri)
+
+        if response.status_code == 201:
+            # 201 Created - Success
+            new_version = parse_json(response)
+            logging.info(f"Created new version for item {item_uuid}")
+            return new_version
+        elif response.status_code == 401:
+            # 401 Unauthorized - Not authenticated
+            logging.error("Unauthorized: You are not authenticated.")
+        elif response.status_code == 403:
+            # 403 Forbidden - Insufficient permissions or blocked entity
+            logging.error(
+                "Forbidden: You do not have sufficient permissions or versioning is blocked for this entity."
+            )
+        elif response.status_code == 400:
+            # 400 Bad Request - URI doesn't resolve to an item
+            logging.error("Bad Request: The URI does not resolve to an item.")
+        elif response.status_code == 422:
+            # 422 Unprocessable Entity - In-progress submission exists
+            logging.error(
+                "Unprocessable Entity: An in-progress submission for a new version already exists."
+            )
+        else:
+            # Other errors
+            logging.error(
+                f"Error creating item version: {response.status_code} {response.text}"
+            )
+
+        return None
+
     def update_item(self, item):
         """
         Update item. The Item passed to this method contains all the data, identifiers, links necessary to
