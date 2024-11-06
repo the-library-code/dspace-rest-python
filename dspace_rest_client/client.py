@@ -386,9 +386,10 @@ class DSpaceClient:
         return r
 
     # PAGINATION
-    def search_objects(self, query=None, scope=None, filters=None, page=0, size=20, sort=None, dso_type=None):
+    def search_objects(self, query=None, scope=None, filters=None, page=0, size=20, sort=None, dso_type=None, configuration='default'):
         """
         Do a basic search with optional query, filters and dsoType params.
+        @param configuration: search configuration (e.g. 'default', 'workflow', 'workspace', 'persons') as defined in discovery.xml
         @param query:   query string
         @param scope:   uuid to limit search scope, eg. owning collection, parent community, etc.
         @param filters: discovery filters as dict eg. {'f.entityType': 'Publication,equals', ... }
@@ -416,6 +417,8 @@ class DSpaceClient:
             params['page'] = page
         if sort is not None:
             params['sort'] = sort
+        if configuration is not None:
+            params['configuration'] = configuration
 
         r_json = self.fetch_resource(url=url, params={**params, **filters})
 
@@ -469,6 +472,8 @@ class DSpaceClient:
         @param params:  Optional params
         @return:        JSON parsed from API response or None if error
         """
+        print(url)
+        print(params)
         r = self.api_get(url, params, None)
         if r.status_code != 200:
             logging.error(f'Error encountered fetching resource: {r.text}')
