@@ -40,6 +40,12 @@ if not authenticated:
     print('Error logging in! Giving up.')
     sys.exit(1)
 
+# An example of searching for workflow items (any search configuration from discovery.xml can be used)
+# note that the results here depend on the workflow role / access of the logged in user
+search_results = d.search_objects(query='*:*', dso_type='item', configuration='workflow')
+for result in search_results:
+    print(f'{result.name} ({result.uuid})')
+
 # Put together some basic Community data.
 # See https://github.com/DSpace/RestContract/blob/main/communities.md
 community_data = {
