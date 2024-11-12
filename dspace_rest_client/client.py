@@ -895,24 +895,7 @@ class DSpaceClient:
             new_version = parse_json(response)
             logging.info(f"Created new version for item {item_uuid}")
             return new_version
-        elif response.status_code == 401:
-            # 401 Unauthorized - Not authenticated
-            logging.error("Unauthorized: You are not authenticated.")
-        elif response.status_code == 403:
-            # 403 Forbidden - Insufficient permissions or blocked entity
-            logging.error(
-                "Forbidden: You do not have sufficient permissions or versioning is blocked for this entity."
-            )
-        elif response.status_code == 400:
-            # 400 Bad Request - URI doesn't resolve to an item
-            logging.error("Bad Request: The URI does not resolve to an item.")
-        elif response.status_code == 422:
-            # 422 Unprocessable Entity - In-progress submission exists
-            logging.error(
-                "Unprocessable Entity: An in-progress submission for a new version already exists."
-            )
         else:
-            # Other errors
             logging.error(
                 f"Error creating item version: {response.status_code} {response.text}"
             )
