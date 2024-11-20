@@ -962,7 +962,7 @@ class DSpaceClient:
         # TODO: To be consistent with other create methods, this should probably also allow a Community object
         #  to be passed instead of just the UUID as a string
         url = f'{self.API_ENDPOINT}/core/collections'
-        params = parse_params(embeds=embed)
+        params = parse_params(embeds=embeds)
         if parent is not None:
             params = {'parent': parent}
         return Collection(api_resource=parse_json(self.create_dso(url, params, data)))
@@ -1058,7 +1058,7 @@ class DSpaceClient:
 
         return None
 
-    def update_item(self, item):
+    def update_item(self, item, embeds=None):
         """
         Update item. The Item passed to this method contains all the data, identifiers, links necessary to
         perform the update to the API. Note this is a full update, not a patch / partial update operation.
