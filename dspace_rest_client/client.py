@@ -446,7 +446,7 @@ class DSpaceClient:
         item_constructor=lambda x: SimpleDSpaceObject(x['_embedded']['indexableObject']),
         embedding=lambda x: x['_embedded']['searchResult']
     )
-    def search_objects_iter(do_paginate, self, query=None, scope=None, filters=None, dso_type=None, sort=None):
+    def search_objects_iter(do_paginate, self, query=None, scope=None, filters=None, dso_type=None, sort=None, embeds=None):
         """
         Do a basic search as in search_objects, automatically handling pagination by requesting the next page when all items from one page have been consumed
         @param query:   query string
@@ -454,12 +454,13 @@ class DSpaceClient:
         @param filters: discovery filters as dict eg. {'f.entityType': 'Publication,equals', ... }
         @param sort: sort eg. 'title,asc'
         @param dso_type: DSO type to further filter results
+        @param embeds:  Optional list of embeds to apply to each search object result
         @return:        Iterator of SimpleDSpaceObject
         """
         if filters is None:
             filters = {}
         url = f'{self.API_ENDPOINT}/discover/search/objects'
-        params = {}
+        params = parse_params(embeds=embeds)
         if query is not None:
             params['query'] = query
         if scope is not None:
@@ -645,14 +646,15 @@ class DSpaceClient:
         return bundles
 
     @paginated('bundles', Bundle)
-    def get_bundles_iter(do_paginate, self, parent, sort=None):
+    def get_bundles_iter(do_paginate, self, parent, sort=None, embeds=None):
         """
         Get bundles for an item, automatically handling pagination by requesting the next page when all items from one page have been consumed
         @param parent:  python Item object, from which the UUID will be referenced in the URL.
+        @param embeds:  Optional list of resources to embed in response JSON
         @return:        Iterator of Bundle
         """
         url = f'{self.API_ENDPOINT}/core/items/{parent.uuid}/bundles'
-        params = {}
+        params = parse_params(embeds=embeds)
         if sort is not None:
             params['sort'] = sort
 
@@ -713,10 +715,11 @@ class DSpaceClient:
                 return bitstreams
 
     @paginated('bitstreams', Bitstream)
-    def get_bitstreams_iter(do_paginate, self, bundle, sort=None):
+    def get_bitstreams_iter(do_paginate, self, bundle, sort=None, embeds=None):
         """
         Get all bitstreams for a specific bundle, automatically handling pagination by requesting the next page when all items from one page have been consumed
         @param bundle:  A python Bundle object to parse for bitstream links to retrieve
+        @param embeds:  Optional list of resources to embed in response JSON
         @return:        Iterator of Bitstream
         """
         if 'bitstreams' in bundle.links:
@@ -724,7 +727,7 @@ class DSpaceClient:
         else:
             url = f'{self.API_ENDPOINT}/core/bundles/{bundle.uuid}/bitstreams'
             logging.warning(f'Cannot find bundle bitstream links, will try to construct manually: {url}')
-        params = {}
+        params = parse_params(embeds=embeds)
         if sort is not None:
             params['sort'] = sort
 
@@ -845,10 +848,11 @@ class DSpaceClient:
         return communities
 
     @paginated('communities', Community)
-    def get_communities_iter(do_paginate, self, sort=None, top=False):
+    def get_communities_iter(do_paginate, self, sort=None, top=False, embeds=None):
         """
         Get communities as an iterator, automatically handling pagination by requesting the next page when all items from one page have been consumed
         @param top:     whether to restrict search to top communities (default: false)
+        @param embeds:  list of resources to embed in response JSON
         @return: Iterator of Community
         """
         if top:
@@ -856,7 +860,7 @@ class DSpaceClient:
         else:
             url = f'{self.API_ENDPOINT}/core/communities'
 
-        params = {}
+        params = parse_params(embeds=embeds)
         if sort is not None:
             params['sort'] = sort
 
@@ -930,19 +934,22 @@ class DSpaceClient:
         return collections
 
     @paginated('collections', Collection)
-    def get_collections_iter(do_paginate, self, community=None, sort=None):
+    def get_collections_iter(do_paginate, self, community=None, sort=None, embeds=None):
         """
         Get collections as an iterator, automatically handling pagination by requesting the next page when all items from one page have been consumed
         @param community:   Community object. If present, collections for a community
         @return:            Iterator of Collection
         """
         url = f'{self.API_ENDPOINT}/core/collections'
+        params = parse_params(embeds=embeds)
+        if sort is not None:
+            params['sort'] = sort
 
         if community is not None:
             if 'collections' in community.links and 'href' in community.links['collections']:
                 url = community.links['collections']['href']
 
-        return do_paginate(url, {})
+        return do_paginate(url, params)
 
     def create_collection(self, parent, data, embeds=None):
         """
@@ -1154,13 +1161,15 @@ class DSpaceClient:
         return users
 
     @paginated('epersons', User)
-    def get_users_iter(do_paginate, self, sort=None):
+    def get_users_iter(do_paginate, self, sort=None, embeds=None):
         """
         Get an iterator of users (epersons) in the DSpace instance, automatically handling pagination by requesting the next page when all items from one page have been consumed
+        @param sort:     Optional sort parameter
+        @param embeds:   Optional list of resources to embed in response JSON
         @return:     Iterator of User
         """
         url = f'{self.API_ENDPOINT}/eperson/epersons'
-        params = {}
+        params = parse_params(embeds=embeds)
         if sort is not None:
             params['sort'] = sort
 
