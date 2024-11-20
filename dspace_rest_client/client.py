@@ -84,6 +84,13 @@ class DSpaceClient:
         MOVE = 'move'
 
     def paginated(embed_name, item_constructor, embedding=lambda x: x):
+        """
+        @param embed_name: The key under '_embedded' in the JSON response that contains the resources to be paginated.
+                           (e.g. 'collections', 'objects', 'items', etc.)
+        @param item_constructor: A callable that takes a resource dictionary and returns an item.
+        @param embedding: Optional post-fetch processing lambda (default: identity function) for each resource
+        @return: A decorator that, when applied to a method, follows pagination and yields each resource
+        """
         def decorator(fun):
             @functools.wraps(fun)
             def decorated(self, *args, **kwargs):
@@ -1096,6 +1103,7 @@ class DSpaceClient:
         @return:     Iterator of User
         """
         url = f'{self.API_ENDPOINT}/eperson/epersons'
+        params = {}
         if sort is not None:
             params['sort'] = sort
 
