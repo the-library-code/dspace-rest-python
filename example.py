@@ -9,17 +9,19 @@ some resources in a DSpace 7 repository.
 
 from dspace_rest_client.client import DSpaceClient
 from dspace_rest_client.models import Community, Collection, Item, Bundle, Bitstream
+import os
 
-# Example variables needed for authentication and basic API requests
-# SET THESE TO MATCH YOUR TEST SYSTEM BEFORE RUNNING THE EXAMPLE SCRIPT
-# You can also leave them out of the constructor and set environment variables instead:
-# DSPACE_API_ENDPOINT=
-# DSPACE_API_USERNAME=
-# DSPACE_API_PASSWORD=
-# USER_AGENT=
+# The DSpace client will look for the same environment variables but we can also look for them here explicitly
+# and as an example
 url = 'http://localhost:8080/server/api'
+if 'DSPACE_API_ENDPOINT' in os.environ:
+    url = os.environ['DSPACE_API_ENDPOINT']
 username = 'username@test.system.edu'
+if 'DSPACE_API_USERNAME' in os.environ:
+    username = os.environ['DSPACE_API_USERNAME']
 password = 'password'
+if 'DSPACE_API_PASSWORD' in os.environ:
+    password = os.environ['DSPACE_API_PASSWORD']
 
 # Instantiate DSpace client
 # Note the 'fake_user_agent' setting here -- this will set a string like the following, to get by Cloudfront:
@@ -221,3 +223,8 @@ for top_community in top_communities:
                     # print, or write to file, etc. You want to use the 'content' property of the response object
                     #
                     # print(r.content)
+
+# Finally, let's show the new _iter methods which will transparently handle pagination and return iterators
+# which you can use as normal
+for i, search_result in enumerate(d.search_objects_iter('*:*')):
+    print(f'Result #{i}: {search_result.name} ({search_result.uuid})')

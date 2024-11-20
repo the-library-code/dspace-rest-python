@@ -16,6 +16,7 @@ better abstracting and handling of HAL-like API responses, plus just all the oth
 """
 import json
 import logging
+import functools
 
 import requests
 from requests import Request
@@ -74,6 +75,7 @@ class DSpaceClient:
     if 'USER_AGENT' in os.environ:
         USER_AGENT = os.environ['USER_AGENT']
     verbose = False
+    ITER_PAGE_SIZE = 20
 
     # Simple enum for patch operation types
     class PatchOperation:
@@ -81,6 +83,38 @@ class DSpaceClient:
         REMOVE = 'remove'
         REPLACE = 'replace'
         MOVE = 'move'
+
+    def paginated(embed_name, item_constructor, embedding=lambda x: x):
+        """
+        @param embed_name: The key under '_embedded' in the JSON response that contains the resources to be paginated.
+                           (e.g. 'collections', 'objects', 'items', etc.)
+        @param item_constructor: A callable that takes a resource dictionary and returns an item.
+        @param embedding: Optional post-fetch processing lambda (default: identity function) for each resource
+        @return: A decorator that, when applied to a method, follows pagination and yields each resource
+        """
+        def decorator(fun):
+            @functools.wraps(fun)
+            def decorated(self, *args, **kwargs):
+                def do_paginate(url, params):
+                    params['size'] = self.ITER_PAGE_SIZE
+
+                    while url is not None:
+                        r_json = embedding(self.fetch_resource(url, params))
+                        for resource in r_json.get('_embedded', {}).get(embed_name, []):
+                            yield item_constructor(resource)
+
+                        if 'next' in r_json.get('_links', {}):
+                            url = r_json['_links']['next']['href']
+                            # assume the ‘next’ link contains all the
+                            # params needed for the correct next page:
+                            params = {}
+                        else:
+                            url = None
+
+                return fun(do_paginate, self, *args, **kwargs)
+            return decorated
+
+        return decorator
 
     def __init__(self, api_endpoint=API_ENDPOINT, username=USERNAME, password=PASSWORD, solr_endpoint=SOLR_ENDPOINT,
                  solr_auth=SOLR_AUTH, fake_user_agent=False):
@@ -397,6 +431,36 @@ class DSpaceClient:
 
         return dsos
 
+    @paginated(
+        embed_name='objects',
+        item_constructor=lambda x: SimpleDSpaceObject(x['_embedded']['indexableObject']),
+        embedding=lambda x: x['_embedded']['searchResult']
+    )
+    def search_objects_iter(do_paginate, self, query=None, scope=None, filters=None, dso_type=None, sort=None):
+        """
+        Do a basic search as in search_objects, automatically handling pagination by requesting the next page when all items from one page have been consumed
+        @param query:   query string
+        @param scope:   uuid to limit search scope, eg. owning collection, parent community, etc.
+        @param filters: discovery filters as dict eg. {'f.entityType': 'Publication,equals', ... }
+        @param sort: sort eg. 'title,asc'
+        @param dso_type: DSO type to further filter results
+        @return:        Iterator of SimpleDSpaceObject
+        """
+        if filters is None:
+            filters = {}
+        url = f'{self.API_ENDPOINT}/discover/search/objects'
+        params = {}
+        if query is not None:
+            params['query'] = query
+        if scope is not None:
+            params['scope'] = scope
+        if dso_type is not None:
+            params['dsoType'] = dso_type
+        if sort is not None:
+            params['sort'] = sort
+
+        return do_paginate(url, {**params, **filters})
+
     def fetch_resource(self, url, params=None):
         """
         Simple function for higher-level 'get' functions to use whenever they want
@@ -571,6 +635,20 @@ class DSpaceClient:
 
         return bundles
 
+    @paginated('bundles', Bundle)
+    def get_bundles_iter(do_paginate, self, parent, sort=None):
+        """
+        Get bundles for an item, automatically handling pagination by requesting the next page when all items from one page have been consumed
+        @param parent:  python Item object, from which the UUID will be referenced in the URL.
+        @return:        Iterator of Bundle
+        """
+        url = f'{self.API_ENDPOINT}/core/items/{parent.uuid}/bundles'
+        params = {}
+        if sort is not None:
+            params['sort'] = sort
+
+        return do_paginate(url, params)
+
     def create_bundle(self, parent=None, name='ORIGINAL'):
         """
         Create new bundle in the specified item
@@ -620,6 +698,24 @@ class DSpaceClient:
                 for bitstream_resource in r_json['_embedded']['bitstreams']:
                     bitstreams.append(Bitstream(bitstream_resource))
                 return bitstreams
+
+    @paginated('bitstreams', Bitstream)
+    def get_bitstreams_iter(do_paginate, self, bundle, sort=None):
+        """
+        Get all bitstreams for a specific bundle, automatically handling pagination by requesting the next page when all items from one page have been consumed
+        @param bundle:  A python Bundle object to parse for bitstream links to retrieve
+        @return:        Iterator of Bitstream
+        """
+        if 'bitstreams' in bundle.links:
+            url = bundle.links['bitstreams']['href']
+        else:
+            url = f'{self.API_ENDPOINT}/core/bundles/{bundle.uuid}/bitstreams'
+            logging.warning(f'Cannot find bundle bitstream links, will try to construct manually: {url}')
+        params = {}
+        if sort is not None:
+            params['sort'] = sort
+
+        return do_paginate(url, params)
 
     def create_bitstream(self, bundle=None, name=None, path=None, mime=None, metadata=None, retry=False):
         """
@@ -734,6 +830,24 @@ class DSpaceClient:
         # Return list (populated or empty)
         return communities
 
+    @paginated('communities', Community)
+    def get_communities_iter(do_paginate, self, sort=None, top=False):
+        """
+        Get communities as an iterator, automatically handling pagination by requesting the next page when all items from one page have been consumed
+        @param top:     whether to restrict search to top communities (default: false)
+        @return: Iterator of Community
+        """
+        if top:
+            url = f'{self.API_ENDPOINT}/core/communities/search/top'
+        else:
+            url = f'{self.API_ENDPOINT}/core/communities'
+
+        params = {}
+        if sort is not None:
+            params['sort'] = sort
+
+        return do_paginate(url, params)
+
     def create_community(self, parent, data):
         """
         Create a community, either top-level or beneath a given parent
@@ -798,6 +912,21 @@ class DSpaceClient:
 
         # Return list (populated or empty)
         return collections
+
+    @paginated('collections', Collection)
+    def get_collections_iter(do_paginate, self, community=None, sort=None):
+        """
+        Get collections as an iterator, automatically handling pagination by requesting the next page when all items from one page have been consumed
+        @param community:   Community object. If present, collections for a community
+        @return:            Iterator of Collection
+        """
+        url = f'{self.API_ENDPOINT}/core/collections'
+
+        if community is not None:
+            if 'collections' in community.links and 'href' in community.links['collections']:
+                url = community.links['collections']['href']
+
+        return do_paginate(url, {})
 
     def create_collection(self, parent, data):
         """
@@ -975,6 +1104,12 @@ class DSpaceClient:
 
     # PAGINATION
     def get_users(self, page=0, size=20, sort=None):
+        """
+        Get a list of users (epersons) in the DSpace instance
+        @param page: Integer for page / offset of results. Default: 0
+        @param size: Integer for page size. Default: 20 (same as REST API default)
+        @return:     list of User objects
+        """
         url = f'{self.API_ENDPOINT}/eperson/epersons'
         users = list()
         params = {}
@@ -991,6 +1126,19 @@ class DSpaceClient:
                 for user_resource in r_json['_embedded']['epersons']:
                     users.append(User(user_resource))
         return users
+
+    @paginated('epersons', User)
+    def get_users_iter(do_paginate, self, sort=None):
+        """
+        Get an iterator of users (epersons) in the DSpace instance, automatically handling pagination by requesting the next page when all items from one page have been consumed
+        @return:     Iterator of User
+        """
+        url = f'{self.API_ENDPOINT}/eperson/epersons'
+        params = {}
+        if sort is not None:
+            params['sort'] = sort
+
+        return do_paginate(url, params)
 
     def create_group(self, group):
         """
