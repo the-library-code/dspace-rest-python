@@ -44,6 +44,16 @@ def parse_json(response):
         logging.error(f'Error parsing response JSON: {err}. Body text: {response.text}')
     return response_json
 
+def parse_params(params=None, embeds=None):
+    if params is None:
+        params = {}
+    if embeds is None:
+        embeds = []
+    if len(embeds) > 0:
+        params['embed'] = ','.join(embeds)
+
+    return params
+
 
 class DSpaceClient:
     """
@@ -327,7 +337,7 @@ class DSpaceClient:
 
         return r
 
-    def api_patch(self, url, operation, path, value, retry=False):
+    def api_patch(self, url, operation, path, value, params=None, retry=False):
         """
         @param url: DSpace REST API URL
         @param operation: 'add', 'remove', 'replace', or 'move' (see PatchOperation enumeration)
@@ -362,7 +372,7 @@ class DSpaceClient:
 
         # set headers
         # perform patch request
-        r = self.session.patch(url, json=[data], headers=self.request_headers)
+        r = self.session.patch(url, json=[data], headers=self.request_headers, params=params)
         self.update_token(r)
 
         if r.status_code == 403:
@@ -377,7 +387,7 @@ class DSpaceClient:
                     logging.warning(f'Too many retries updating token: {r.status_code}: {r.text}')
                 else:
                     logging.debug("Retrying request with updated CSRF token")
-                    return self.api_patch(url, operation, path, value, True)
+                    return self.api_patch(url, operation, path, value, params, True)
         elif r.status_code == 200:
             # 200 Success
             logging.info(f'successful patch update to {r.json()["type"]} {r.json()["id"]}')
@@ -386,7 +396,7 @@ class DSpaceClient:
         return r
 
     # PAGINATION
-    def search_objects(self, query=None, scope=None, filters=None, page=0, size=20, sort=None, dso_type=None):
+    def search_objects(self, query=None, scope=None, filters=None, page=0, size=20, sort=None, dso_type=None, embeds=None):
         """
         Do a basic search with optional query, filters and dsoType params.
         @param query:   query string
@@ -396,14 +406,14 @@ class DSpaceClient:
         @param size: size of page (aka. 'rows'), affects the page parameter above
         @param sort: sort eg. 'title,asc'
         @param dso_type: DSO type to further filter results
+        @param embeds:  Optional list of embeds to apply to each search object result
         @return:        list of DspaceObject objects constructed from API resources
         """
         dsos = []
         if filters is None:
             filters = {}
         url = f'{self.API_ENDPOINT}/discover/search/objects'
-        # we will add params to filters, so
-        params = {}
+        params = parse_params(embeds=embeds)
         if query is not None:
             params['query'] = query
         if scope is not None:
@@ -476,34 +486,40 @@ class DSpaceClient:
         # ValueError / JSON handling moved to static method
         return parse_json(r)
 
-    def get_dso(self, url, uuid):
+    def get_dso(self, url, uuid, params=None, embeds=None):
         """
         Base 'get DSpace Object' function.
         Uses fetch_resource which itself calls parse_json on the raw response before returning.
         @param url:     DSpace REST API URL
         @param uuid:    UUID of object to retrieve
+        @param params:  Optional params
+        @param embeds:  Optional list of embeds to include in the request
         @return:        Parsed JSON response from fetch_resource
         """
         try:
             # Try to get UUID version to test validity
             id = UUID(uuid).version
             url = f'{url}/{uuid}'
-            return self.api_get(url, None, None)
+            params=parse_params(params, embeds=embeds)
+            return self.api_get(url, params, None)
         except ValueError:
             logging.error(f'Invalid DSO UUID: {uuid}')
             return None
 
-    def create_dso(self, url, params, data):
+
+
+    def create_dso(self, url, params, data, embeds=None):
         """
         Base 'create DSpace Object' function.
         Takes JSON data and some POST parameters and returns the response.
         @param url:     DSpace REST API URL
         @param params:  Any parameters to pass in the request, eg. parentCollection for a new item
         @param data:    JSON data expected by the REST API to create the new resource
+        @param embeds:  Optional list of embeds (embed linked resources in response JSON)
         @return:        Raw API response. New DSO *could* be returned but for error checking purposes, raw response
                         is nice too and can always be parsed from this response later.
         """
-        r = self.api_post(url, params, data)
+        r = self.api_post(url, parse_params(params, embeds), data)
         if r.status_code == 201:
             # 201 Created - success!
             new_dso = parse_json(r)
@@ -512,7 +528,7 @@ class DSpaceClient:
             logging.error(f'create operation failed: {r.status_code}: {r.text} ({url})')
         return r
 
-    def update_dso(self, dso, params=None):
+    def update_dso(self, dso, params=None, embeds=None):
         """
         Update DSpaceObject. Takes a DSpaceObject and any optional parameters. Will send a PUT update to the remote
         object and return the updated object, typed correctly.
@@ -533,19 +549,11 @@ class DSpaceClient:
             url = dso.links['self']['href']
             # Get and clean data - there are some unalterable fields that could cause errors
             data = dso.as_dict()
-
             if 'lastModified' in data:
                 data.pop('lastModified')
-            """
-            if 'id' in data:
-                data.pop('id')
-            if 'handle' in data:
-                data.pop('handle')
-            if 'uuid' in data:
-                data.pop('uuid')
-            if 'type' in data:
-                data.pop('type')
-            """
+            # Parse parameters
+            params = parse_params(params, embeds)
+
             r = self.api_put(url, params=params, json=data)
             if r.status_code == 200:
                 # 200 OK - success!
@@ -596,12 +604,13 @@ class DSpaceClient:
             return None
 
     # PAGINATION
-    def get_bundles(self, parent=None, uuid=None, page=0, size=20, sort=None):
+    def get_bundles(self, parent=None, uuid=None, page=0, size=20, sort=None, embeds=None):
         """
         Get bundles for an item
         @param parent:  python Item object, from which the UUID will be referenced in the URL.
                         This is mutually exclusive to the 'uuid' argument, returning all bundles for the item.
         @param uuid:    Bundle UUID. This is mutually exclusive to the 'parent' argument, returning just this bundle
+        @param embeds:  Optional list of resources to embed in response JSON
         @return:        List of bundles (single UUID bundle result is wrapped in a list before returning)
         """
         # TODO: It is probably wise to allow the parent UUID to be simply passed as an alternative to having the full
@@ -615,7 +624,7 @@ class DSpaceClient:
             url = f'{self.API_ENDPOINT}/core/items/{parent.uuid}/bundles'
         else:
             return list()
-        params = {}
+        params = parse_params(embeds=embeds)
         if size is not None:
             params['size'] = size
         if page is not None:
@@ -649,11 +658,12 @@ class DSpaceClient:
 
         return do_paginate(url, params)
 
-    def create_bundle(self, parent=None, name='ORIGINAL'):
+    def create_bundle(self, parent=None, name='ORIGINAL', embeds=None):
         """
         Create new bundle in the specified item
         @param parent:  Parent python Item, the UUID of which will be used in the URL path
         @param name:    Name of the bundle. Default: ORIGINAL
+        @param embeds:  Optional list of resources to embed in response JSON
         @return:        constructed python Bundle object from the response JSON
                         (note: this is a bit inconsistent with create_dso usage where the raw response is returned)
         """
@@ -662,7 +672,7 @@ class DSpaceClient:
         if parent is None:
             return None
         url = f'{self.API_ENDPOINT}/core/items/{parent.uuid}/bundles'
-        return Bundle(api_resource=parse_json(self.api_post(url, params=None, json={'name': name, 'metadata': {}})))
+        return Bundle(api_resource=parse_json(self.api_post(url, params=parse_params(embeds=embeds), json={'name': name, 'metadata': {}})))
 
     # PAGINATION
     def get_bitstreams(self, uuid=None, bundle=None, page=0, size=20, sort=None, embeds=None):
@@ -672,10 +682,9 @@ class DSpaceClient:
         @param bundle:  A python Bundle object to parse for bitstream links to retrieve
         @param page:    Page number, for pagination over large result sets (default: 0)
         @param size:    Size of results per page (default: 20)
+        @param embeds:  Optional list of resources to embed in response JSON
         @return:        list of python Bitstream objects
         """
-        if embeds is None:
-            embeds = []
         url = f'{self.API_ENDPOINT}/core/bitstreams/{uuid}'
         if uuid is None and bundle is None:
             return list()
@@ -686,15 +695,14 @@ class DSpaceClient:
                 url = f'{self.API_ENDPOINT}/core/bundles/{bundle.uuid}/bitstreams'
                 logging.warning(f'Cannot find bundle bitstream links, will try to construct manually: {url}')
         # Perform the actual request. By now, our URL and parameter should be properly set
-        params = {}
+        params = parse_params(embeds=embeds)
         if size is not None:
             params['size'] = size
         if page is not None:
             params['page'] = page
         if sort is not None:
             params['sort'] = sort
-        if len(embeds) > 0:
-            params['embed'] = ','.join(embeds)
+
         r_json = self.fetch_resource(url, params=params)
         if '_embedded' in r_json:
             if 'bitstreams' in r_json['_embedded']:
@@ -722,7 +730,7 @@ class DSpaceClient:
 
         return do_paginate(url, params)
 
-    def create_bitstream(self, bundle=None, name=None, path=None, mime=None, metadata=None, retry=False):
+    def create_bitstream(self, bundle=None, name=None, path=None, mime=None, metadata=None, embeds=None, retry=False):
         """
         Upload a file and create a bitstream for a specified parent bundle, from the uploaded file and
         the supplied metadata.
@@ -751,7 +759,7 @@ class DSpaceClient:
         payload = {'properties': json.dumps(properties) + ';application/json'}
         h = self.session.headers
         h.update({'Content-Encoding': 'gzip', 'User-Agent': self.USER_AGENT})
-        req = Request('POST', url, data=payload, headers=h, files=files)
+        req = Request('POST', url, data=payload, headers=h, files=files, params=parse_params(embeds=embeds))
         prepared_req = self.session.prepare_request(req)
         r = self.session.send(prepared_req)
         if 'DSPACE-XSRF-TOKEN' in r.headers:
@@ -766,7 +774,7 @@ class DSpaceClient:
                     logging.error('Already retried... something must be wrong')
                 else:
                     logging.debug("Retrying request with updated CSRF token")
-                    return self.create_bitstream(bundle, name, path, mime, metadata, True)
+                    return self.create_bitstream(bundle, name, path, mime, metadata, embeds, True)
 
         if r.status_code == 201 or r.status_code == 200:
             # Success
@@ -788,17 +796,18 @@ class DSpaceClient:
             return r
 
     # PAGINATION
-    def get_communities(self, uuid=None, page=0, size=20, sort=None, top=False):
+    def get_communities(self, uuid=None, page=0, size=20, sort=None, top=False, embeds=None):
         """
         Get communities - either all, for single UUID, or all top-level (ie no sub-communities)
         @param uuid:    string UUID if getting single community
         @param page:    integer page (default: 0)
         @param size:    integer size (default: 20)
         @param top:     whether to restrict search to top communities (default: false)
+        @param embeds:  list of resources to embed in response JSON
         @return:        list of communities, or None if error
         """
         url = f'{self.API_ENDPOINT}/core/communities'
-        params = {}
+        params = parse_params(embeds=embeds)
         if size is not None:
             params['size'] = size
         if page is not None:
@@ -853,33 +862,35 @@ class DSpaceClient:
 
         return do_paginate(url, params)
 
-    def create_community(self, parent, data):
+    def create_community(self, parent, data, embeds=None):
         """
         Create a community, either top-level or beneath a given parent
         @param parent:  (optional) parent UUID to pass as a parameter to create_dso
         @param data:    Full JSON data for the new community
+        @param embeds:  Optional list of resources to embed in response JSON
         @return:        python Community object constructed from the API response
         """
         # TODO: To be consistent with other create methods, this should probably also allow a Community object
         #  to be passed instead of just the UUID as a string
         url = f'{self.API_ENDPOINT}/core/communities'
-        params = None
+        params = parse_params(embeds=embeds)
         if parent is not None:
             params = {'parent': parent}
         return Community(api_resource=parse_json(self.create_dso(url, params, data)))
 
-    def get_collections(self, uuid=None, community=None, page=0, size=20, sort=None):
+    def get_collections(self, uuid=None, community=None, page=0, size=20, sort=None, embeds=None):
         """
         Get collections - all, or single UUID, or for a specific community
         @param uuid:        UUID string. If present, just a single collection is returned (overrides community arg)
         @param community:   Community object. If present (and no uuid present), collections for a community
         @param page:        Integer for page / offset of results. Default: 0
         @param size:        Integer for page size. Default: 20 (same as REST API default)
+        @param embeds:      Optional list of resources to embed in response JSON
         @return:            list of Collection objects, or None if there was an error
                             for consistency of handling results, even the uuid search will be a list of one
         """
         url = f'{self.API_ENDPOINT}/core/collections'
-        params = {}
+        params = parse_params(embeds=embeds)
         if size is not None:
             params['size'] = size
         if page is not None:
@@ -933,25 +944,27 @@ class DSpaceClient:
 
         return do_paginate(url, {})
 
-    def create_collection(self, parent, data):
+    def create_collection(self, parent, data, embeds=None):
         """
         Create collection beneath a given parent community.
         @param parent:  UUID of parent community to pass as a parameter to create_dso
         @param data:    Full JSON data for the new collection
+        @param embed:   Optional list of resources to embed in response JSON
         @return:        python Collection object constructed from the API response
         """
         # TODO: To be consistent with other create methods, this should probably also allow a Community object
         #  to be passed instead of just the UUID as a string
         url = f'{self.API_ENDPOINT}/core/collections'
-        params = None
+        params = parse_params(embeds=embed)
         if parent is not None:
             params = {'parent': parent}
         return Collection(api_resource=parse_json(self.create_dso(url, params, data)))
 
-    def get_item(self, uuid):
+    def get_item(self, uuid, embeds=None):
         """
         Get an item, given its UUID
         @param uuid:    the UUID of the item
+        @param embeds:      Optional list of resources to embed in response JSON
         @return:        the raw API response
         """
         # TODO - return constructed Item object instead, handling errors here?
@@ -959,22 +972,23 @@ class DSpaceClient:
         try:
             id = UUID(uuid).version
             url = f'{url}/{uuid}'
-            return self.api_get(url, None, None)
+            return self.api_get(url, parse_params(embeds=embeds), None)
         except ValueError:
             logging.error(f'Invalid item UUID: {uuid}')
             return None
 
-    def get_items(self):
+    def get_items(self, embeds=None):
         """
         Get all archived items for a logged-in administrator. Admin only! Usually you will want to
         use search or browse methods instead of this method
+        @param embeds:  Optional list of resources to embed in response JSON
         @return: A list of items, or an error
         """
         url = f'{self.API_ENDPOINT}/core/items'
         # Empty item list
         items = list()
         # Perform the actual request
-        r_json = self.fetch_resource(url)
+        r_json = self.fetch_resource(url, params=parse_params(embeds=embeds))
         # Empty list
         items = list()
         if '_embedded' in r_json:
@@ -989,24 +1003,25 @@ class DSpaceClient:
         # Return list (populated or empty)
         return items
 
-    def create_item(self, parent, item):
+    def create_item(self, parent, item, embeds=None):
         """
         Create an item beneath the given parent collection
         @param parent:  UUID of parent collection to pass as a parameter to create_dso
         @param item:    python Item object containing all the data and links expected by the REST API
+        @param embeds:  Optional list of resources to embed in response JSON
         @return:        Item object constructed from the API response
         """
         url = f'{self.API_ENDPOINT}/core/items'
         if parent is None:
             logging.error('Need a parent UUID!')
             return None
-        params = {'owningCollection': parent}
+        params = parse_params({'owningCollection': parent}, embeds)
         if not isinstance(item, Item):
             logging.error('Need a valid item')
             return None
         return Item(api_resource=parse_json(self.create_dso(url, params=params, data=item.as_dict())))
 
-    def create_item_version(self, item_uuid, summary=None):
+    def create_item_version(self, item_uuid, summary=None, embeds=None):
         """
         Create a new version of an existing item.
         @param item_uuid: UUID of the item to version
@@ -1014,7 +1029,7 @@ class DSpaceClient:
         @return: JSON response containing the new version information or None if an error occurs
         """
         url = f"{self.API_ENDPOINT}/versioning/versions"
-        params = {}
+        params = parse_params(embeds=embeds)
         if summary is not None:
             params["summary"] = summary
 
@@ -1041,23 +1056,25 @@ class DSpaceClient:
         Update item. The Item passed to this method contains all the data, identifiers, links necessary to
         perform the update to the API. Note this is a full update, not a patch / partial update operation.
         @param item: python Item object
+        @param embeds:  Optional list of resources to embed in response JSON
         @return:
         """
         if not isinstance(item, Item):
             logging.error('Need a valid item')
             return None
-        return self.update_dso(item, params=None)
+        return self.update_dso(item, params=parse_params(embeds=embeds))
 
-    def add_metadata(self, dso, field, value, language=None, authority=None, confidence=-1, place=''):
+    def add_metadata(self, dso, field, value, language=None, authority=None, confidence=-1, place='', embeds=None):
         """
         Add metadata to a DSO using the api_patch method (PUT, with path and operation and value)
-        :param dso:
-        :param field:
-        :param value:
-        :param language:
-        :param authority:
-        :param confidence:
-        :param place:
+        @param dso: DSO to patch
+        @param field: Metadata field to patch
+        @param value: Metadata value to patch
+        @param language: Optional language
+        @param authority: Optional authority
+        @param confidence: Optional confidence
+        @param place: Optional place (metadata position)
+        @param embeds:  Optional list of resources to embed in response JSON
         :return:
         """
         if dso is None or field is None or value is None or not isinstance(dso, DSpaceObject):
@@ -1079,15 +1096,16 @@ class DSpaceClient:
         url = dso.links['self']['href']
 
         r = self.api_patch(
-            url=url, operation=self.PatchOperation.ADD, path=path, value=patch_value)
+            url=url, operation=self.PatchOperation.ADD, path=path, value=patch_value, params=parse_params(embeds=embeds))
 
         return dso_type(api_resource=parse_json(r))
 
-    def create_user(self, user, token=None):
+    def create_user(self, user, token=None, embeds=None):
         """
         Create a user
         @param user:    python User object or Python dict containing all the data and links expected by the REST API
-        :param token:   Token if creating new user (optional) from the link in a registration email
+        @param token:   Token if creating new user (optional) from the link in a registration email
+        @embeds:  Optional list of resources to embed in response JSON
         @return:        User object constructed from the API response
         """
         url = f'{self.API_ENDPOINT}/eperson/epersons'
@@ -1096,7 +1114,7 @@ class DSpaceClient:
             data = user.as_dict()
             # TODO: Validation. Note, at least here I will just allow a dict instead of the pointless cast<->cast
             # that you see for other DSO types - still figuring out the best way
-        params = None
+        params = parse_params(embeds=embeds)
         if token is not None:
             params = {'token': token}
         return User(api_resource=parse_json(self.create_dso(url, params=params, data=data)))
@@ -1108,16 +1126,19 @@ class DSpaceClient:
         return self.delete_dso(user)
 
     # PAGINATION
-    def get_users(self, page=0, size=20, sort=None):
+    def get_users(self, page=0, size=20, sort=None, embeds=None):
         """
         Get a list of users (epersons) in the DSpace instance
         @param page: Integer for page / offset of results. Default: 0
         @param size: Integer for page size. Default: 20 (same as REST API default)
+        @param embeds: Optional list of resources to embed in response JSON
         @return:     list of User objects
         """
         url = f'{self.API_ENDPOINT}/eperson/epersons'
         users = list()
-        params = {}
+        params = parse_params(embeds=embeds)
+        if page is not None:
+            params['page'] = page
         if size is not None:
             params['size'] = size
         if page is not None:
@@ -1145,10 +1166,11 @@ class DSpaceClient:
 
         return do_paginate(url, params)
 
-    def create_group(self, group):
+    def create_group(self, group, embeds=None):
         """
         Create a group
         @param group:    python Group object or Python dict containing all the data and links expected by the REST API
+        @param embeds:  Optional list of resources to embed in response JSON
         @return:         User object constructed from the API response
         """
         url = f'{self.API_ENDPOINT}/eperson/groups'
@@ -1157,7 +1179,7 @@ class DSpaceClient:
             data = group.as_dict()
             # TODO: Validation. Note, at least here I will just allow a dict instead of the pointless cast<->cast
             # that you see for other DSO types - still figuring out the best way
-        return Group(api_resource=parse_json(self.create_dso(url, params=None, data=data)))
+        return Group(api_resource=parse_json(self.create_dso(url, params=parse_params(embeds=embeds), data=data)))
 
     def start_workflow(self, workspace_item):
         url = f'{self.API_ENDPOINT}/workflow/workflowitems'
