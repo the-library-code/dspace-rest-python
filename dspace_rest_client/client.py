@@ -475,8 +475,6 @@ class DSpaceClient:
         @param params:  Optional params
         @return:        JSON parsed from API response or None if error
         """
-        print(url)
-        print(params)
         r = self.api_get(url, params, None)
         if r.status_code != 200:
             logging.error(f'Error encountered fetching resource: {r.text}')
