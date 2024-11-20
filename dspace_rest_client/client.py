@@ -386,7 +386,7 @@ class DSpaceClient:
         return r
 
     # PAGINATION
-    def search_objects(self, query=None, scope=None, filters=None, page=0, size=20, sort=None, dso_type=None):
+    def search_objects(self, query=None, scope=None, filters=None, page=0, size=20, sort=None, dso_type=None, configuration='default'):
         """
         Do a basic search with optional query, filters and dsoType params.
         @param query:   query string
@@ -396,6 +396,7 @@ class DSpaceClient:
         @param size: size of page (aka. 'rows'), affects the page parameter above
         @param sort: sort eg. 'title,asc'
         @param dso_type: DSO type to further filter results
+        @param configuration: search configuration (e.g. 'default', 'workflow', 'workspace', 'persons') as defined in discovery.xml
         @return:        list of DspaceObject objects constructed from API resources
         """
         dsos = []
@@ -416,6 +417,8 @@ class DSpaceClient:
             params['page'] = page
         if sort is not None:
             params['sort'] = sort
+        if configuration is not None:
+            params['configuration'] = configuration
 
         r_json = self.fetch_resource(url=url, params={**params, **filters})
 
@@ -436,7 +439,7 @@ class DSpaceClient:
         item_constructor=lambda x: SimpleDSpaceObject(x['_embedded']['indexableObject']),
         embedding=lambda x: x['_embedded']['searchResult']
     )
-    def search_objects_iter(do_paginate, self, query=None, scope=None, filters=None, dso_type=None, sort=None):
+    def search_objects_iter(do_paginate, self, query=None, scope=None, filters=None, dso_type=None, sort=None, configuration='default'):
         """
         Do a basic search as in search_objects, automatically handling pagination by requesting the next page when all items from one page have been consumed
         @param query:   query string
@@ -444,6 +447,7 @@ class DSpaceClient:
         @param filters: discovery filters as dict eg. {'f.entityType': 'Publication,equals', ... }
         @param sort: sort eg. 'title,asc'
         @param dso_type: DSO type to further filter results
+        @param configuration: search configuration (e.g. 'default', 'workflow', 'workspace', 'persons') as defined in discovery.xml
         @return:        Iterator of SimpleDSpaceObject
         """
         if filters is None:
@@ -458,6 +462,8 @@ class DSpaceClient:
             params['dsoType'] = dso_type
         if sort is not None:
             params['sort'] = sort
+        if configuration is not None:
+            params['configuration'] = configuration
 
         return do_paginate(url, {**params, **filters})
 
