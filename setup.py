@@ -1,7 +1,7 @@
 import setuptools
 from dspace_rest_client import __version__
 
-with open("README.md", "r") as fh:
+with open("README.md", "r", encoding="utf_8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
