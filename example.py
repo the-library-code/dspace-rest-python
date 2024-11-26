@@ -7,10 +7,11 @@ Example Python 3 application using the dspace.py API client library to create
 some resources in a DSpace 7 repository.
 """
 
-from dspace_rest_client.client import DSpaceClient
-from dspace_rest_client.models import Community, Collection, Item, Bundle, Bitstream
 import os
 import sys
+
+from dspace_rest_client.client import DSpaceClient
+from dspace_rest_client.models import Community, Collection, Item, Bundle, Bitstream
 
 # The DSpace client will look for the same environment variables but we can also look for them here explicitly
 # and as an example

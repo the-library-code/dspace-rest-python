@@ -1,9 +1,10 @@
-from dspace_rest_client.client import DSpaceClient
-# Import models as needed
-#from dspace_rest_client.models import Community, Collection, Item, Bundle, Bitstream
 import code
 import os
 import sys
+
+from dspace_rest_client.client import DSpaceClient
+# Import models as needed
+#from dspace_rest_client.models import Community, Collection, Item, Bundle, Bitstream
 
 # The DSpace client will look for the same environment variables, but we can also look for them here explicitly
 # and as an example
