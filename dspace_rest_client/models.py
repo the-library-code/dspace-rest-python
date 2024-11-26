@@ -63,7 +63,7 @@ class ExternalDataObject(HALResource):
         """
         super().__init__(api_resource)
 
-        self.metadata = dict()
+        self.metadata = {}
 
         if api_resource is not None:
             if 'id' in api_resource:
@@ -83,7 +83,7 @@ class ExternalDataObject(HALResource):
         @param field: DSpace field, eg. dc.creator
         @return: list of strings
         """
-        values = list()
+        values = []
         if field in self.metadata:
             values = self.metadata[field]
         return values
@@ -111,7 +111,7 @@ class DSpaceObject(HALResource):
         """
         super().__init__(api_resource)
         self.type = None
-        self.metadata = dict()
+        self.metadata = {}
 
         if dso is not None:
             api_resource = dso.as_dict()
@@ -217,7 +217,7 @@ class Item(SimpleDSpaceObject):
     inArchive = False
     discoverable = False
     withdrawn = False
-    metadata = dict()
+    metadata = {}
 
     def __init__(self, api_resource=None, dso=None):
         """
@@ -242,7 +242,7 @@ class Item(SimpleDSpaceObject):
         @param field: DSpace field, eg. dc.creator
         @return: list of strings
         """
-        values = list()
+        values = []
         if field in self.metadata:
             values = self.metadata[field]
         return values

@@ -606,7 +606,7 @@ class DSpaceClient:
         """
         # TODO: It is probably wise to allow the parent UUID to be simply passed as an alternative to having the full
         #  python object as constructed by this REST client, for more flexible usage.
-        bundles = list()
+        bundles = []
         single_result = False
         if uuid is not None:
             url = f'{self.API_ENDPOINT}/core/bundles/{uuid}'
@@ -614,7 +614,7 @@ class DSpaceClient:
         elif parent is not None:
             url = f'{self.API_ENDPOINT}/core/items/{parent.uuid}/bundles'
         else:
-            return list()
+            return []
         params = {}
         if size is not None:
             params['size'] = size
@@ -676,7 +676,7 @@ class DSpaceClient:
         """
         url = f'{self.API_ENDPOINT}/core/bitstreams/{uuid}'
         if uuid is None and bundle is None:
-            return list()
+            return []
         if uuid is None and isinstance(bundle, Bundle):
             if 'bitstreams' in bundle.links:
                 url = bundle.links['bitstreams']['href']
@@ -694,7 +694,7 @@ class DSpaceClient:
         r_json = self.fetch_resource(url, params=params)
         if '_embedded' in r_json:
             if 'bitstreams' in r_json['_embedded']:
-                bitstreams = list()
+                bitstreams = []
                 for bitstream_resource in r_json['_embedded']['bitstreams']:
                     bitstreams.append(Bitstream(bitstream_resource))
                 return bitstreams
@@ -819,7 +819,7 @@ class DSpaceClient:
         # Perform actual get
         r_json = self.fetch_resource(url, params)
         # Empty list
-        communities = list()
+        communities = []
         if '_embedded' in r_json:
             if 'communities' in r_json['_embedded']:
                 for community_resource in r_json['_embedded']['communities']:
@@ -900,7 +900,7 @@ class DSpaceClient:
         # Perform the actual request. By now, our URL and parameter should be properly set
         r_json = self.fetch_resource(url, params=params)
         # Empty list
-        collections = list()
+        collections = []
         if '_embedded' in r_json:
             # This is a list of collections
             if 'collections' in r_json['_embedded']:
@@ -967,11 +967,11 @@ class DSpaceClient:
         """
         url = f'{self.API_ENDPOINT}/core/items'
         # Empty item list
-        items = list()
+        items = []
         # Perform the actual request
         r_json = self.fetch_resource(url)
         # Empty list
-        items = list()
+        items = []
         if '_embedded' in r_json:
             # This is a list of items
             if 'items' in r_json['_embedded']:
@@ -1111,7 +1111,7 @@ class DSpaceClient:
         @return:     list of User objects
         """
         url = f'{self.API_ENDPOINT}/eperson/epersons'
-        users = list()
+        users = []
         params = {}
         if size is not None:
             params['size'] = size
