@@ -3,6 +3,7 @@ from dspace_rest_client.client import DSpaceClient
 #from dspace_rest_client.models import Community, Collection, Item, Bundle, Bitstream
 import code
 import os
+import sys
 
 # The DSpace client will look for the same environment variables, but we can also look for them here explicitly
 # and as an example
@@ -23,6 +24,6 @@ d = DSpaceClient(api_endpoint=url, username=username, password=password)
 authenticated = d.authenticate()
 if not authenticated:
     print(f'Error logging in! Giving up.')
-    exit(1)
+    sys.exit(1)
 
 code.interact(local=locals())

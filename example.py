@@ -10,6 +10,7 @@ some resources in a DSpace 7 repository.
 from dspace_rest_client.client import DSpaceClient
 from dspace_rest_client.models import Community, Collection, Item, Bundle, Bitstream
 import os
+import sys
 
 # The DSpace client will look for the same environment variables but we can also look for them here explicitly
 # and as an example
@@ -34,7 +35,7 @@ d = DSpaceClient(api_endpoint=url, username=username, password=password, fake_us
 authenticated = d.authenticate()
 if not authenticated:
     print('Error logging in! Giving up.')
-    exit(1)
+    sys.exit(1)
 
 # Put together some basic Community data.
 # See https://github.com/DSpace/RestContract/blob/main/communities.md
@@ -61,7 +62,7 @@ if isinstance(new_community, Community) and new_community.uuid is not None:
     print(f'New community created! Handle: {new_community.handle}')
 else:
     print('Error! Giving up.')
-    exit(1)
+    sys.exit(1)
 
 # Update the community metadata
 new_community.name = 'Community created by the Python REST Client - Updated Name'
@@ -96,7 +97,7 @@ if isinstance(new_collection, Collection) and new_collection.uuid is not None:
     print(f'New collection created! Handle: {new_collection.handle}')
 else:
     print('Error! Giving up.')
-    exit(1)
+    sys.exit(1)
 
 # Put together some basic Item data.
 # (See: https://github.com/DSpace/RestContract/blob/main/items.md)
@@ -149,7 +150,7 @@ if isinstance(new_item, Item) and new_item.uuid is not None:
     print(f'New item created! Handle: {new_item.handle}')
 else:
     print('Error! Giving up.')
-    exit(1)
+    sys.exit(1)
 
 # Add a single metadata field+value to the item (PATCH operation)
 updated_item = d.add_metadata(dso=new_item, field='dc.description.abstract', value='Added abstract to an existing item',
@@ -184,7 +185,7 @@ if isinstance(new_bitstream, Bitstream) and new_bitstream.uuid is not None:
     print(f'New bitstream created! UUID: {new_bitstream.uuid}')
 else:
     print('Error! Giving up.')
-    exit(1)
+    sys.exit(1)
 
 print('All finished with example data creation. Visit your test repository to review created objects')
 

@@ -6,6 +6,8 @@
 Example Python 3 application using the dspace.py API client library to retrieve basic DSOs in a DSpace repository
 """
 
+import sys
+
 from dspace_rest_client.client import DSpaceClient
 # Import models as below if needed
 #from dspace_rest_client.models import Community, Collection, Item, Bundle, Bitstream
@@ -32,7 +34,7 @@ d = DSpaceClient(api_endpoint=url, username=username, password=password, fake_us
 authenticated = d.authenticate()
 if not authenticated:
     print('Error logging in! Giving up.')
-    exit(1)
+    sys.exit(1)
 
 # Retrieving objects - now that we know there is some data in the repository we can demonstrate
 # some simple ways of retrieving and iterating DSOs
