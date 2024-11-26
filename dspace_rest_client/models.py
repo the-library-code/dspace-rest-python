@@ -414,12 +414,12 @@ class User(SimpleDSpaceObject):
     Extends DSpaceObject to implement specific attributes and methods for users (aka. EPersons)
     """
     type = 'user'
-    name = None,
-    netid = None,
-    lastActive = None,
-    canLogIn = False,
-    email = None,
-    requireCertificate = False,
+    name = None
+    netid = None
+    lastActive = None
+    canLogIn = False
+    email = None
+    requireCertificate = False
     selfRegistered = False
 
     def __init__(self, api_resource=None):
