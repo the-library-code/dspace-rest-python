@@ -17,12 +17,13 @@ better abstracting and handling of HAL-like API responses, plus just all the oth
 import json
 import logging
 import functools
+import os
+from uuid import UUID
 
 import requests
 from requests import Request
 import pysolr
-import os
-from uuid import UUID
+
 from .models import *
 from . import __version__
 
