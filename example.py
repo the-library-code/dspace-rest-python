@@ -13,24 +13,24 @@ import sys
 from dspace_rest_client.client import DSpaceClient
 from dspace_rest_client.models import Community, Collection, Item, Bundle, Bitstream
 
-# The DSpace client will look for the same environment variables but we can also look for them here explicitly
-# and as an example
-url = 'http://localhost:8080/server/api'
-if 'DSPACE_API_ENDPOINT' in os.environ:
-    url = os.environ['DSPACE_API_ENDPOINT']
-username = 'username@test.system.edu'
-if 'DSPACE_API_USERNAME' in os.environ:
-    username = os.environ['DSPACE_API_USERNAME']
-password = 'password'
-if 'DSPACE_API_PASSWORD' in os.environ:
-    password = os.environ['DSPACE_API_PASSWORD']
+DEFAULT_URL = 'http://localhost:8080/server/api'
+DEFAULT_USERNAME = 'username@test.system.edu'
+DEFAULT_PASSWORD = 'password'
+
+# Configuration from environment variables
+URL = os.environ.get('DSPACE_API_ENDPOINT', DEFAULT_URL)
+USERNAME = os.environ.get('DSPACE_API_USERNAME', DEFAULT_USERNAME)
+PASSWORD = os.environ.get('DSPACE_API_PASSWORD', DEFAULT_PASSWORD)
 
 # Instantiate DSpace client
-# Note the 'fake_user_agent' setting here -- this will set a string like the following, to get by Cloudfront:
+# Note the 'fake_user_agent' setting here -- this will set a string like the following,
+# to get by Cloudfront:
 # Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36
-# The default is to *not* fake the user agent, and instead use the default of DSpace-Python-REST-Client/x.y.z
-# To specify a custom user agent, set the USER_AGENT env variable and leave/set fake_user_agent as False
-d = DSpaceClient(api_endpoint=url, username=username, password=password, fake_user_agent=True)
+# The default is to *not* fake the user agent, and instead use the default of
+# DSpace-Python-REST-Client/x.y.z
+# To specify a custom user agent, set the USER_AGENT env variable and leave/set
+# fake_user_agent as False
+d = DSpaceClient(api_endpoint=URL, username=USERNAME, password=PASSWORD, fake_user_agent=True)
 
 # Authenticate against the DSpace client
 authenticated = d.authenticate()
@@ -57,8 +57,8 @@ community_data = {
 # Create the new community
 # In this example, we'll just make this a top-level community by
 # passing None as the parent parameter
-community_parent = None
-new_community = d.create_community(parent=community_parent, data=community_data)
+COMMUNITY_PARENT = None
+new_community = d.create_community(parent=COMMUNITY_PARENT, data=community_data)
 if isinstance(new_community, Community) and new_community.uuid is not None:
     print(f'New community created! Handle: {new_community.handle}')
 else:
@@ -176,12 +176,12 @@ bitstream_metadata = {
 }
 
 # Set the mime type (using mimetypes.guess_type is recommended for real uploads if you don't want to set manually)
-file_mime = 'text/plain'
+FILE_MIME = 'text/plain'
 # Set a better file name for our test upload
-file_name = 'uploaded_file.txt'
+FILE_NAME = 'uploaded_file.txt'
 # Create the bitstream and upload the file
-new_bitstream = d.create_bitstream(bundle=new_bundle, name=file_name,
-                                   path='LICENSE.txt', mime=file_mime, metadata=bitstream_metadata)
+new_bitstream = d.create_bitstream(bundle=new_bundle, name=FILE_NAME,
+                                   path='LICENSE.txt', mime=FILE_MIME, metadata=bitstream_metadata)
 if isinstance(new_bitstream, Bitstream) and new_bitstream.uuid is not None:
     print(f'New bitstream created! UUID: {new_bitstream.uuid}')
 else:
