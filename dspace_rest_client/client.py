@@ -26,7 +26,7 @@ import requests
 from requests import Request
 import pysolr
 
-from .models import *
+from .models import SimpleDSpaceObject, Community, Collection, Item, Bundle, Bitstream, User, Group, DSpaceObject
 from . import __version__
 
 __all__ = ['DSpaceClient']
