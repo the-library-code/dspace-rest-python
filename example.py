@@ -166,7 +166,7 @@ if isinstance(new_bundle, Bundle) and new_bundle.uuid is not None:
     print(f'New bundle created! UUID: {new_bundle.uuid}')
 else:
     print('Error! Giving up.')
-    exit(1)
+    sys.exit(1)
 
 # Create and upload a new bitstream using the LICENSE.txt file in this project
 # Set bitstream metadata
