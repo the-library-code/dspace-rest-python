@@ -25,7 +25,8 @@ PASSWORD = os.environ.get('DSPACE_API_PASSWORD', DEFAULT_PASSWORD)
 # Instantiate DSpace client
 # Note the 'fake_user_agent' setting here -- this will set a string like the following,
 # to get by Cloudfront:
-# Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36
+# Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) \
+# Chrome/39.0.2171.95 Safari/537.36
 # The default is to *not* fake the user agent, and instead use the default of
 # DSpace-Python-REST-Client/x.y.z
 # To specify a custom user agent, set the USER_AGENT env variable and leave/set
@@ -154,7 +155,8 @@ else:
     sys.exit(1)
 
 # Add a single metadata field+value to the item (PATCH operation)
-updated_item = d.add_metadata(dso=new_item, field='dc.description.abstract', value='Added abstract to an existing item',
+updated_item = d.add_metadata(dso=new_item, field='dc.description.abstract',
+                              value='Added abstract to an existing item',
                               language='en', authority=None, confidence=-1)
 
 # Create a new ORIGINAL bundle
@@ -175,7 +177,8 @@ bitstream_metadata = {
           'authority': None, 'confidence': -1, 'place': 0}]
 }
 
-# Set the mime type (using mimetypes.guess_type is recommended for real uploads if you don't want to set manually)
+# Set the mime type (using mimetypes.guess_type is recommended for real uploads if you
+# don't want to set manually)
 FILE_MIME = 'text/plain'
 # Set a better file name for our test upload
 FILE_NAME = 'uploaded_file.txt'
@@ -188,7 +191,8 @@ else:
     print('Error! Giving up.')
     sys.exit(1)
 
-print('All finished with example data creation. Visit your test repository to review created objects')
+print('All finished with example data creation. Visit your test repository to review \
+    created objects')
 
 # Retrieving objects - now that we know there is some data in the repository we can demonstrate
 # some simple ways of retrieving and iterating DSOs
@@ -202,8 +206,10 @@ for top_community in top_communities:
     collections = d.get_collections(community=top_community)
     for collection in collections:
         print(f'{collection.name} ({collection.uuid}')
-        # Get all items in this collection - see that the recommended method is a search, scoped to this collection
-        # (there is no collection/items endpoint, though there is a /mappedItems endpoint, not yet implemented here)
+        # Get all items in this collection - see that the recommended method is a search,
+        # scoped to this collection
+        # (there is no collection/items endpoint, though there is a /mappedItems endpoint,
+        # not yet implemented here)
         items = d.search_objects(query='*:*', scope=collection.uuid, dso_type='item')
         for item in items:
             print(f'{item.name} ({item.uuid})')
@@ -218,15 +224,20 @@ for top_community in top_communities:
                     # Download this bitstream
                     r = d.download_bitstream(bitstream.uuid)
                     if r is not None and r.headers is not None:
-                        print(f'\tHeaders (server info, not calculated locally)\n\tmd5: {r.headers.get("ETag")}\n'
-                              f'\tformat: {r.headers.get("Content-Type")}\n\tlength: {r.headers.get("Content-Length")}\n'
-                              f'\tLOCAL LEN(): {len(r.content)}')
-                    # Uncomment the below to get the binary data in content and then do something with it like
-                    # print, or write to file, etc. You want to use the 'content' property of the response object
+                        print(
+                            '\tHeaders (server info, not calculated locally)\n'
+                            f'\tmd5: {r.headers.get("ETag")}\n'
+                            f'\tformat: {r.headers.get("Content-Type")}\n'
+                            f'\tlength: {r.headers.get("Content-Length")}\n'
+                            f'\tLOCAL LEN(): {len(r.content)}'
+                        )
+                    # Uncomment the below to get the binary data in content and then do
+                    # something with it like print, or write to file, etc. You want to use
+                    # the 'content' property of the response object
                     #
                     # print(r.content)
 
-# Finally, let's show the new _iter methods which will transparently handle pagination and return iterators
-# which you can use as normal
+# Finally, let's show the new _iter methods which will transparently handle pagination
+# and return iterators which you can use as normal
 for i, search_result in enumerate(d.search_objects_iter('*:*')):
     print(f'Result #{i}: {search_result.name} ({search_result.uuid})')

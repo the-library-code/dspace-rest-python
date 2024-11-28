@@ -15,9 +15,13 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/the-library-code/dspace-rest-client",
     project_urls={
-        'Documentation': 'https://github.com/the-library-code/dspace-rest-python/blob/main/README.md',
+        'Documentation': (
+            'https://github.com/the-library-code/dspace-rest-python/blob/main/README.md'
+        ),
         'GitHub': 'https://github.com/the-library-code/dspace-rest-python',
-        'Changelog': 'https://github.com/the-library-code/dspace-rest-python/blob/main/CHANGELOG.md',
+        'Changelog': (
+            'https://github.com/the-library-code/dspace-rest-python/blob/main/CHANGELOG.md'
+        ),
     },
     classifiers=[
         "Programming Language :: Python :: 3.8",
