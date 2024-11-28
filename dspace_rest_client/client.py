@@ -3,14 +3,16 @@
 # and described in the LICENSE.txt file in the root of this project
 
 """
-DSpace REST API client library. Intended to make interacting with DSpace in Python 3 easier, particularly
-when creating, updating, retrieving and deleting DSpace Objects.
-This client library is a work in progress and currently only implements the most basic functionality.
-It was originally created to assist with a migration of container structure, items and bistreams from a non-DSpace
-system to a new DSpace 7 repository.
+DSpace REST API client library. Intended to make interacting with DSpace in Python 3 easier, 
+particularly when creating, updating, retrieving and deleting DSpace Objects.
+This client library is a work in progress and currently only implements the most basic 
+functionality.
+It was originally created to assist with a migration of container structure, items and bistreams 
+from a non-DSpace system to a new DSpace 7 repository.
 
-It needs a lot of expansion: resource policies and permissions, validation of prepared objects and responses,
-better abstracting and handling of HAL-like API responses, plus just all the other endpoints and operations implemented.
+It needs a lot of expansion: resource policies and permissions, validation of prepared objects 
+and responses, better abstracting and handling of HAL-like API responses, plus just all the other 
+endpoints and operations implemented.
 
 @author Kim Shepherd <kim@shepherd.nz>
 """
@@ -48,11 +50,12 @@ def parse_json(response):
 
 class DSpaceClient:
     """
-    Main class of the API client itself. This client uses request sessions to connect and authenticate to
-    the REST API, maintain XSRF tokens, and all GET, POST, PUT, PATCH operations.
-    Low-level api_get, api_post, api_put, api_delete, api_patch functions are defined to handle the requests and do
-    retries / XSRF refreshes where necessary.
-    Higher level get, create, update, partial_update (patch) functions are implemented for each DSO type
+    Main class of the API client itself. This client uses request sessions to connect and 
+    authenticate to the REST API, maintain XSRF tokens, and all GET, POST, PUT, PATCH operations.
+    Low-level api_get, api_post, api_put, api_delete, api_patch functions are defined to 
+    handle the requests and do retries / XSRF refreshes where necessary.
+    Higher level get, create, update, partial_update (patch) functions are implemented 
+    for each DSO type
     """
     # Set up basic environment, variables
     session = None
@@ -87,11 +90,13 @@ class DSpaceClient:
 
     def paginated(embed_name, item_constructor, embedding=lambda x: x):
         """
-        @param embed_name: The key under '_embedded' in the JSON response that contains the resources to be paginated.
-                           (e.g. 'collections', 'objects', 'items', etc.)
+        @param embed_name: The key under '_embedded' in the JSON response that contains the 
+        resources to be paginated. (e.g. 'collections', 'objects', 'items', etc.)
         @param item_constructor: A callable that takes a resource dictionary and returns an item.
-        @param embedding: Optional post-fetch processing lambda (default: identity function) for each resource
-        @return: A decorator that, when applied to a method, follows pagination and yields each resource
+        @param embedding: Optional post-fetch processing lambda (default: identity function) 
+        for each resource
+        @return: A decorator that, when applied to a method, follows pagination and yields 
+        each resource
         """
         def decorator(fun):
             @functools.wraps(fun)
@@ -120,9 +125,11 @@ class DSpaceClient:
     def __init__(self, api_endpoint=API_ENDPOINT, username=USERNAME, password=PASSWORD, solr_endpoint=SOLR_ENDPOINT,
                  solr_auth=SOLR_AUTH, fake_user_agent=False):
         """
-        Accept optional API endpoint, username, password arguments using the OS environment variables as defaults
+        Accept optional API endpoint, username, password arguments using the OS environment 
+        variables as defaults
         :param api_endpoint:    base path to DSpace REST API, eg. http://localhost:8080/server/api
-        :param username:        username with appropriate privileges to perform operations on REST API
+        :param username:        username with appropriate privileges to perform operations on 
+                                REST API
         :param password:        password for the above username
         """
         self.session = requests.Session()
