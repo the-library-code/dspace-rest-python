@@ -12,7 +12,7 @@ when creating, updating, retrieving and deleting DSpace Objects.
 import json
 
 __all__ = ['DSpaceObject', 'HALResource', 'ExternalDataObject', 'SimpleDSpaceObject', 'Community',
-           'Collection', 'Item', 'Bundle', 'Bitstream', 'User', 'Group']
+           'Collection', 'Item', 'Bundle', 'Bitstream', 'BitstreamFormat', 'User', 'Group']
 
 
 class HALResource:
@@ -21,6 +21,7 @@ class HALResource:
     """
     links = {}
     type = None
+    embedded = dict()
 
     def __init__(self, api_resource=None):
         """
@@ -32,6 +33,8 @@ class HALResource:
                 self.type = api_resource['type']
             if '_links' in api_resource:
                 self.links = api_resource['_links'].copy()
+            if '_embedded' in api_resource:
+                self.embedded = api_resource['_embedded'].copy()
             else:
                 self.links = {'self': {'href': None}}
 
@@ -378,6 +381,57 @@ class Bitstream(DSpaceObject):
                           'sequenceId': self.sequenceId}
         return {**dso_dict, **bitstream_dict}
 
+class BitstreamFormat(AddressableHALResource):
+    """
+    Bitstream format: https://github.com/DSpace/RestContract/blob/main/bitstreamformats.md
+    example:
+        {
+          "shortDescription": "XML",
+          "description": "Extensible Markup Language",
+          "mimetype": "text/xml",
+          "supportLevel": "KNOWN",
+          "internal": false,
+          "extensions": [
+                  "xml"
+          ],
+          "type": "bitstreamformat"
+        }
+    """
+    shortDescription = None
+    description = None
+    mimetype = None
+    supportLevel = None
+    internal = False
+    extensions = []
+    type = 'bitstreamformat'
+
+    def __init__(self, api_resource):
+        super(BitstreamFormat, self).__init__(api_resource)
+        if 'shortDescription' in api_resource:
+            self.shortDescription = api_resource['shortDescription']
+        if 'description' in api_resource:
+            self.description = api_resource['description']
+        if 'mimetype' in api_resource:
+            self.mimetype = api_resource['mimetype']
+        if 'supportLevel' in api_resource:
+            self.supportLevel = api_resource['supportLevel']
+        if 'internal' in api_resource:
+            self.internal = api_resource['internal']
+        if 'extensions' in api_resource:
+            self.extensions = api_resource['extensions'].copy()
+
+    def as_dict(self):
+        parent_dict = super(BitstreamFormat, self).as_dict()
+        dict = {
+            'shortDescription': self.shortDescription,
+            'description': self.description,
+            'mimetype': self.mimetype,
+            'supportLevel': self.supportLevel,
+            'internal': self.internal,
+            'extensions': self.extensions,
+            'type': self.type
+        }
+        return {**parent_dict, **dict}
 
 class Group(DSpaceObject):
     """
