@@ -1,4 +1,7 @@
 # DSpace Python REST Client Library
+
+TEST
+
 This client library allows Python 3 scripts (Python 2 probably compatible but not officially supported) to interact with
 DSpace 7+ repositories, using the DSpace REST API.
 
