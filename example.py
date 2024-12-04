@@ -6,6 +6,7 @@
 Example Python 3 application using the dspace.py API client library to create
 some resources in a DSpace 7 repository.
 """
+from pprint import pprint
 
 import os
 import sys
@@ -73,7 +74,10 @@ new_community.metadata['dc.title'][0] = {
     'language': 'en', 'authority': None, 'confidence': -1
 }
 
-d.update_dso(new_community)
+# Linked resources can be embedded with responses, e.g.
+updated_community = d.update_dso(new_community, embeds=['logo', 'collections'])
+# Print logo (it'll be None in this case, but just an example
+print(f"Logo for updated community is {updated_community.embedded['logo']}")
 
 # Put together some basic Collection data.
 # See https://github.com/DSpace/RestContract/blob/main/collections.md
