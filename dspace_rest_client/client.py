@@ -52,11 +52,15 @@ def parse_json(response):
     """
     response_json = None
     try:
-        response_json = response.json()
+        if response is not None:
+            response_json = response.json()
     except ValueError as err:
-        logging.error(
-            "Error parsing response JSON: %s. Body text: %s", err, response.text
-        )
+        if response is not None:
+            logging.error(
+                "Error parsing response JSON: %s. Body text: %s", err, response.text
+            )
+        else:
+            logging.error("Error parsing response JSON: %s. Response is None", err)
     return response_json
 
 
@@ -817,6 +821,12 @@ class DSpaceClient:
             if "bitstreams" in bundle.links:
                 url = bundle.links["bitstreams"]["href"]
             else:
+                if bundle is None:
+                    logging.error("Bundle cannot be None")
+                    return []
+                if bundle is None:
+                    logging.error("Bundle cannot be None")
+                    return []
                 url = f"{self.API_ENDPOINT}/core/bundles/{bundle.uuid}/bitstreams"
                 logging.warning(
                     "Cannot find bundle bitstream links, will try to construct manually: %s",
