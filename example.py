@@ -220,7 +220,7 @@ for top_community in top_communities:
         # scoped to this collection
         # (there is no collection/items endpoint, though there is a /mappedItems endpoint,
         # not yet implemented here)
-        items = d.search_objects(query='*:*', scope=collection.uuid, dso_type='item')
+        items = d.search_objects(query='*:*', scope=collection.uuid, dso_type='item', configuration='default')
         for item in items:
             print(f'{item.name} ({item.uuid})')
             # Get all bundles in this item
