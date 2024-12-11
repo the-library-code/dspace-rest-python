@@ -487,6 +487,7 @@ class DSpaceClient:
         size=20,
         sort=None,
         dso_type=None,
+        configuration='default',
         embeds=None,
     ):
         """
@@ -498,6 +499,7 @@ class DSpaceClient:
         @param size: size of page (aka. 'rows'), affects the page parameter above
         @param sort: sort eg. 'title,asc'
         @param dso_type: DSO type to further filter results
+        @param configuration: Search (discovery) configuration to apply to the query
         @param embeds:  Optional list of embeds to apply to each search object result
         @return:        list of DspaceObject objects constructed from API resources
         """
@@ -518,6 +520,8 @@ class DSpaceClient:
             params["page"] = page
         if sort is not None:
             params["sort"] = sort
+        if configuration is not None:
+            params['configuration'] = configuration
 
         r_json = self.fetch_resource(url=url, params={**params, **filters})
 
@@ -548,6 +552,7 @@ class DSpaceClient:
         filters=None,
         dso_type=None,
         sort=None,
+        configuration='default',
         embeds=None,
     ):
         """
@@ -557,6 +562,7 @@ class DSpaceClient:
         @param filters: discovery filters as dict eg. {'f.entityType': 'Publication,equals', ... }
         @param sort: sort eg. 'title,asc'
         @param dso_type: DSO type to further filter results
+        @param configuration: Search (discovery) configuration to apply to the query
         @param embeds:  Optional list of embeds to apply to each search object result
         @return:        Iterator of SimpleDSpaceObject
         """
@@ -572,6 +578,8 @@ class DSpaceClient:
             params["dsoType"] = dso_type
         if sort is not None:
             params["sort"] = sort
+        if configuration is not None:
+            params['configuration'] = configuration
 
         return do_paginate(url, {**params, **filters})
 
