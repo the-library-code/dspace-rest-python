@@ -1443,6 +1443,15 @@ class DSpaceClient:
         return None
 
     def solr_query(self, query, filters=None, fields=None, start=0, rows=999999999):
+        """
+        Perform raw Solr query
+        @param query: query string
+        @param filters: list of filter queries
+        @param fields: list of fields to return in results
+        @param start: start doc
+        @param rows: max docs to return
+        @return: solr search results
+        """
         if fields is None:
             fields = []
         if filters is None:
@@ -1450,3 +1459,22 @@ class DSpaceClient:
         return self.solr.search(
             query, fq=filters, start=start, rows=rows, **{"fl": ",".join(fields)}
         )
+
+    def resolve_identifier_to_dso(self, identifier=None):
+        """
+        Resolve a DSO identifier (uuid, handle, DOI, etc.) to a DSO URI
+        Useful for resolving handles to objects, etc.
+        @param identifier: a persistent identifier for an object like handle, doi, uuid
+        @return: resolved DSpaceObject or error
+        """
+        if identifier is not None:
+            url = f'{self.API_ENDPOINT}/pid/find'
+            r = self.api_get(url, params={'id': identifier})
+            if r.status_code == 200:
+                r_json = parse_json(r)
+                if r_json is not None and 'uuid' in r_json:
+                    return DSpaceObject(api_resource=r_json)
+            elif r.status_code == 404:
+                logging.error(f"Not found: {identifier}")
+            else:
+                logging.error(f"Error resolving identifier {identifier} to DSO: {r.status_code}")
