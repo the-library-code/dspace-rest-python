@@ -1,5 +1,24 @@
 # Changelog
 
+### 0.1.13
+
+Date: 2024-12-11
+
+PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.13/
+
+**Changes**
+
+1. Update requests and pysolr dependencies and improve setup.py (thanks @alanorth) https://github.com/the-library-code/dspace-rest-python/pull/24
+2. Add auto-paginating `get_*_iter` methods for most `get_*` methods (thanks @dpk) https://github.com/the-library-code/dspace-rest-python/pull/27
+3. Improve version number maintenance https://github.com/the-library-code/dspace-rest-python/pull/30
+4. New `create_item_version` method (thanks @soaringjupiter) https://github.com/the-library-code/dspace-rest-python/pull/31
+5. Allow `embed=['...', '...']` parameter in most methods that return objects, to allow embedded HAL resources https://github.com/the-library-code/dspace-rest-python/pull/20
+6. Extend `search_objects[_iter]` to accept a configuration parameter https://github.com/the-library-code/dspace-rest-python/pull/32
+7. Integrate pylint scaffolding (thanks @sszepe and @mdwRepository) https://github.com/the-library-code/dspace-rest-python/pull/37
+8. New `resolve_identifier_to_dso` method https://github.com/the-library-code/dspace-rest-python/pull/39
+9. Small pydoc improvements
+10. Added new example usage to `example.py`
+
 ### 0.1.12
 
 Date: 2024-08-06
@@ -10,6 +29,7 @@ PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.12/
 
 1. Initialise search result objects as `SimpleDSpaceObject` rather than base `DSpaceObject` class (thanks to @JemmaPilcher)
 2. Introduce / tidy new `SearchResult` model as work towards https://github.com/the-library-code/dspace-rest-python/issues/17
+3. Fix `get_items` method parameters (thanks @ckubgi) https://github.com/the-library-code/dspace-rest-python/pull/21
 
 ### 0.1.11
 
