@@ -1420,17 +1420,20 @@ class DSpaceClient:
 
         return dso_type(api_resource=parse_json(r))
 
-    def delete_item(self, item_uuid):
+    def delete_item(self, item):
         """
         Delete an item, given its UUID
         @param item_uuid: the UUID of the item
         @return: the raw API response
         """
         try:
-            url = f"{self.API_ENDPOINT}/core/items/{item_uuid}"
+            if not isinstance(item, Item):
+                logging.error("Need a valid item")
+                return None
+            url = f"{self.API_ENDPOINT}/core/items/{item.uuid}"
             return self.api_delete(url)
         except ValueError:
-            logging.error("Invalid item UUID: %s", item_uuid)
+            logging.error("Invalid item UUID: %s", item.uuid)
             return None
 
     def create_user(self, user, token=None, embeds=None):
