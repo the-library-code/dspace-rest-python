@@ -1286,7 +1286,7 @@ class DSpaceClient:
 
     def patch_item(
         self,
-        item_uuid,
+        item,
         operation,
         field,
         value=None,
@@ -1306,8 +1306,8 @@ class DSpaceClient:
         @return: The API response or None in case of an error.
         """
         try:
-            if not item_uuid:
-                logging.error("Item UUID is required")
+            if not isinstance(item, Item):
+                logging.error("Need a valid item")
                 return None
 
             if not field or not value:
@@ -1330,7 +1330,7 @@ class DSpaceClient:
                 return None
 
             # Construct the item URI
-            item_uri = f"{self.API_ENDPOINT}/core/items/{item_uuid}"
+            item_uri = f"{self.API_ENDPOINT}/core/items/{item.uuid}"
 
             path = f"/metadata/{field}/{place}"
             patch_value = {
@@ -1349,12 +1349,12 @@ class DSpaceClient:
             )
 
             if response.status_code in [200, 204]:
-                logging.info("Successfully patched item: %s", item_uuid)
+                logging.info("Successfully patched item: %s", item.uuid)
                 return response
             else:
                 logging.error(
                     "Failed to patch item: %s (Status: %s, Response: %s)",
-                    item_uuid,
+                    item.uuid,
                     response.status_code,
                     response.text,
                 )
