@@ -1149,17 +1149,46 @@ class DSpaceClient:
         """
         Get an item, given its UUID
         @param uuid:    the UUID of the item
-        @param embeds:      Optional list of resources to embed in response JSON
-        @return:        the raw API response
+        @param embeds:  Optional list of resources to embed in response JSON
+        @return:        the constructed Item object or None if an error occurs
         """
-        # TODO - return constructed Item object instead, handling errors here?
         url = f"{self.API_ENDPOINT}/core/items"
         try:
-            id = UUID(uuid).version
+            # Validate the UUID format
+            id_version = UUID(uuid).version
             url = f"{url}/{uuid}"
-            return self.api_get(url, parse_params(embeds=embeds), None)
+
+            # Make API GET request
+            response = self.api_get(url, parse_params(embeds=embeds), None)
+
+            # Handle successful response
+            if response.status_code == 200:
+                # Parse the response JSON into an Item object
+                return self._construct_item(response.json())
+            else:
+                logging.error(
+                    "Failed to retrieve item. Status code: %s", response.status_code
+                )
+                logging.error("Response: %s", response.text)
+                return None
         except ValueError:
             logging.error("Invalid item UUID: %s", uuid)
+            return None
+        except Exception as e:
+            logging.error("An unexpected error occurred: %s", str(e))
+            return None
+
+    def _construct_item(self, item_data):
+        """
+        Construct an Item object from API response data
+        @param item_data: The raw JSON data from the API
+        @return: An Item object
+        """
+        try:
+            # Create an Item instance, using the API response data
+            return Item(api_resource=item_data)
+        except KeyError as e:
+            logging.error("Missing expected key in item data: %s", str(e))
             return None
 
     def get_items(self, embeds=None):
