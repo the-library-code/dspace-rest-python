@@ -487,7 +487,7 @@ class DSpaceClient:
         size=20,
         sort=None,
         dso_type=None,
-        configuration='default',
+        configuration="default",
         embeds=None,
     ):
         """
@@ -521,7 +521,7 @@ class DSpaceClient:
         if sort is not None:
             params["sort"] = sort
         if configuration is not None:
-            params['configuration'] = configuration
+            params["configuration"] = configuration
 
         r_json = self.fetch_resource(url=url, params={**params, **filters})
 
@@ -552,7 +552,7 @@ class DSpaceClient:
         filters=None,
         dso_type=None,
         sort=None,
-        configuration='default',
+        configuration="default",
         embeds=None,
     ):
         """
@@ -579,7 +579,7 @@ class DSpaceClient:
         if sort is not None:
             params["sort"] = sort
         if configuration is not None:
-            params['configuration'] = configuration
+            params["configuration"] = configuration
 
         return do_paginate(url, {**params, **filters})
 
@@ -1255,6 +1255,86 @@ class DSpaceClient:
             return None
         return self.update_dso(item, params=parse_params(embeds=embeds))
 
+    def patch_item(
+        self,
+        item_uuid,
+        operation,
+        field,
+        value=None,
+        language=None,
+        authority=None,
+        confidence=-1,
+        place="",
+    ):
+        """
+        Patch item. This method performs a partial update operation (PATCH) on the given Item object.
+        Supports operations: 'add', 'remove', 'replace'. Does not support 'move'.
+
+        @param item: Python Item object containing all the necessary data, identifiers, and links.
+        @param operation: Operation to perform ('add', 'remove', 'replace').
+        @param path: Path to the field or property to patch.
+        @param value: New value for the specified path (required for 'add' and 'replace'). Ignored for 'remove'.
+        @return: The API response or None in case of an error.
+        """
+        try:
+            if not item_uuid:
+                logging.error("Item UUID is required")
+                return None
+            
+            if not field or not value:
+                logging.error("Field and value are required")
+                return None
+            
+            if not operation or operation not in [
+                self.PatchOperation.ADD,
+                self.PatchOperation.REPLACE,
+                self.PatchOperation.REMOVE,
+            ]:
+                logging.error("Unsupported operation: %s", operation)
+                return None
+
+            if (
+                operation in [self.PatchOperation.ADD, self.PatchOperation.REPLACE]
+                and value is None
+            ):
+                logging.error("Value is required for 'add' and 'replace' operations")
+                return None
+
+            # Construct the item URI
+            item_uri = f"{self.API_ENDPOINT}/core/items/{item_uuid}"
+
+            path = f"/metadata/{field}/{place}"
+            patch_value = {
+                "value": value,
+                "language": language,
+                "authority": authority,
+                "confidence": confidence,
+            }
+
+            # Perform the patch operation
+            response = self.api_patch(
+                url=item_uri,
+                operation=operation,
+                path=path,
+                value=patch_value,
+            )
+
+            if response.status_code in [200, 204]:
+                logging.info("Successfully patched item: %s", item_uuid)
+                return response
+            else:
+                logging.error(
+                    "Failed to patch item: %s (Status: %s, Response: %s)",
+                    item_uuid,
+                    response.status_code,
+                    response.text,
+                )
+                return None
+
+        except ValueError:
+            logging.error("Error processing patch operation", exc_info=True)
+            return None
+
     def add_metadata(
         self,
         dso,
@@ -1468,13 +1548,15 @@ class DSpaceClient:
         @return: resolved DSpaceObject or error
         """
         if identifier is not None:
-            url = f'{self.API_ENDPOINT}/pid/find'
-            r = self.api_get(url, params={'id': identifier})
+            url = f"{self.API_ENDPOINT}/pid/find"
+            r = self.api_get(url, params={"id": identifier})
             if r.status_code == 200:
                 r_json = parse_json(r)
-                if r_json is not None and 'uuid' in r_json:
+                if r_json is not None and "uuid" in r_json:
                     return DSpaceObject(api_resource=r_json)
             elif r.status_code == 404:
                 logging.error(f"Not found: {identifier}")
             else:
-                logging.error(f"Error resolving identifier {identifier} to DSO: {r.status_code}")
+                logging.error(
+                    f"Error resolving identifier {identifier} to DSO: {r.status_code}"
+                )
