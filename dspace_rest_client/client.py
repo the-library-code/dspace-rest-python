@@ -1280,11 +1280,11 @@ class DSpaceClient:
             if not item_uuid:
                 logging.error("Item UUID is required")
                 return None
-            
+
             if not field or not value:
                 logging.error("Field and value are required")
                 return None
-            
+
             if not operation or operation not in [
                 self.PatchOperation.ADD,
                 self.PatchOperation.REPLACE,
@@ -1390,6 +1390,19 @@ class DSpaceClient:
         )
 
         return dso_type(api_resource=parse_json(r))
+
+    def delete_item(self, item_uuid):
+        """
+        Delete an item, given its UUID
+        @param item_uuid: the UUID of the item
+        @return: the raw API response
+        """
+        try:
+            url = f"{self.API_ENDPOINT}/core/items/{item_uuid}"
+            return self.api_delete(url)
+        except ValueError:
+            logging.error("Invalid item UUID: %s", item_uuid)
+            return None
 
     def create_user(self, user, token=None, embeds=None):
         """
