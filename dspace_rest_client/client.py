@@ -1594,6 +1594,19 @@ class DSpaceClient:
 
         return groups
     
+    def get_group_by_uuid(self, uuid, embeds=None):
+        """
+        Fetch a single group by UUID
+        @param uuid: UUID of the group
+        @param embeds: Optional list of resources to embed in response JSON
+        @return: Group object or None if not found
+        """
+        url = f"{self.API_ENDPOINT}/eperson/groups/{uuid}"
+        params = parse_params(embeds=embeds)
+        response = self.api_get(url, params=params)
+        response_json = parse_json(response=response)
+        return Group(response_json) if response_json else None
+    
     def start_workflow(self, workspace_item):
         url = f"{self.API_ENDPOINT}/workflow/workflowitems"
         res = parse_json(self.api_post_uri(url, params=None, uri_list=workspace_item))
