@@ -1380,6 +1380,19 @@ class DSpaceClient:
             params["sort"] = sort
 
         return do_paginate(url, params)
+    
+    def get_user_by_uuid(self, uuid, embeds=None):
+        """
+        Get a single user by UUID
+        @param uuid: UUID of the user
+        @param embeds: Optional list of resources to embed in response JSON
+        @return: User object constructed from the API response or None if not found
+        """
+        url = f"{self.API_ENDPOINT}/eperson/epersons/{uuid}"
+        params = parse_params(embeds=embeds)
+        r = self.api_get(url, params=params)
+        r_json = parse_json(response=r)
+        return User(r_json) if r_json else None
 
     def create_group(self, group, embeds=None):
         """
