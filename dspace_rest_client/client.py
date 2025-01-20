@@ -1487,6 +1487,25 @@ class DSpaceClient:
                 for group_resource in r_json["_embedded"]["groups"]
             ]
         return groups
+    
+    def search_users_not_in_group(self, group_uuid, query=None, embeds=None):
+        """
+        Search users not in a specific group
+        @param group_uuid: UUID of the group
+        @param query: Search query (UUID, name, email, etc.)
+        @param embeds: Optional list of resources to embed in response JSON
+        @return: List of User objects matching the query
+        """
+        url = f"{self.API_ENDPOINT}/eperson/epersons/search/isNotMemberOf"
+        params = parse_params(group=group_uuid, query=query, embeds=embeds)
+        r = self.api_get(url, params=params)
+        r_json = parse_json(response=r)
+        users = []
+        if "_embedded" in r_json and "epersons" in r_json["_embedded"]:
+            users = [
+                User(user_resource) for user_resource in r_json["_embedded"]["epersons"]
+            ]
+        return users
 
     def create_group(self, group, embeds=None):
         """
