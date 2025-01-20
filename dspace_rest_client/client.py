@@ -1506,6 +1506,24 @@ class DSpaceClient:
                 User(user_resource) for user_resource in r_json["_embedded"]["epersons"]
             ]
         return users
+    
+    def update_user_metadata(self, user_uuid, path, value, embeds=None):
+        """
+        Update user metadata
+        @param user_uuid: UUID of the user
+        @param metadata_updates: List of metadata updates in the PATCH format
+        @return: Updated User object or None if the operation fails
+        """
+        url = f"{self.API_ENDPOINT}/eperson/epersons/{user_uuid}"
+        r = self.api_patch(
+            url=url,
+            operation="replace",
+            path=path,
+            value=value,
+            params=parse_params(embeds=embeds),
+        )
+        r_json = parse_json(response=r)
+        return User(r_json) if r_json else None
 
     def create_group(self, group, embeds=None):
         """
