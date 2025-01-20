@@ -1594,6 +1594,20 @@ class DSpaceClient:
 
         return groups
     
+    def update_group_name(self, uuid, new_name):
+        """
+        Update the name of a group
+        @param uuid: UUID of the group
+        @param new_name: New name for the group
+        @return: Updated Group object or None if the update fails
+        """
+        url = f"{self.API_ENDPOINT}/eperson/groups/{uuid}"
+        response = self.api_patch(
+            url, operation="replace", path="/name", value=new_name
+        )
+        response_json = parse_json(response=response)
+        return Group(response_json) if response_json else None
+    
     def delete_group(self, uuid):
         """
         Delete a group by UUID
