@@ -1574,6 +1574,26 @@ class DSpaceClient:
             )
         )
 
+    def get_groups(self, page=0, size=20, embeds=None):
+        """
+        Fetch all groups
+        @param page: Page number for pagination
+        @param size: Number of results per page
+        @param embeds: Optional list of resources to embed in response JSON
+        @return: List of Group objects
+        """
+        url = f"{self.API_ENDPOINT}/eperson/groups"
+        params = parse_params({"page": page, "size": size}, embeds=embeds)
+        response = self.api_get(url, params=params)
+        response_json = parse_json(response=response)
+        groups = []
+
+        if "_embedded" in response_json and "groups" in response_json["_embedded"]:
+            for group_data in response_json["_embedded"]["groups"]:
+                groups.append(Group(group_data))
+
+        return groups
+    
     def start_workflow(self, workspace_item):
         url = f"{self.API_ENDPOINT}/workflow/workflowitems"
         res = parse_json(self.api_post_uri(url, params=None, uri_list=workspace_item))
