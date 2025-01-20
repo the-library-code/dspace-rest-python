@@ -1464,9 +1464,8 @@ class DSpaceClient:
                     for group_resource in r_json["_embedded"]["specialGroups"]
                 ]
                 return groups
-            else:
-                logging.error("Special groups not found in response.")
-                return None
+            logging.error("Special groups not found in response.")
+            return None
         except Exception as e:
             logging.error("Error retrieving special groups: %s", e)
             return None
@@ -1548,14 +1547,13 @@ class DSpaceClient:
         if r.status_code == 200:
             logging.info("Updated Password for user %s", user_uuid)
             return True
-        elif r.status_code == 422:
+        if r.status_code == 422:
             logging.error(
                 "Password does not respect the rules configured in the regular expression."
             )
             return False
-        else:
-            logging.error("An error occurred updating the password.")
-            return False
+        logging.error("An error occurred updating the password.")
+        return False
 
     def create_group(self, group, embeds=None):
         """
