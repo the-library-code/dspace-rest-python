@@ -21,6 +21,7 @@ import logging
 import functools
 import os
 from uuid import UUID
+from urllib.parse import urlparse
 
 import requests
 from requests import Request
@@ -1444,7 +1445,7 @@ class DSpaceClient:
                 logging.error("EPerson link not found in response.")
                 return None
         except Exception as e:
-            logging.error(f"Error retrieving EPerson ID: {e}")
+            logging.error("Error retrieving EPerson ID: %s", e)
             return None
         
     def get_special_groups_of_user(self):
@@ -1467,7 +1468,7 @@ class DSpaceClient:
                 logging.error("Special groups not found in response.")
                 return None
         except Exception as e:
-            logging.error(f"Error retrieving special groups: {e}")
+            logging.error("Error retrieving special groups: %s", e)
             return None
 
     def get_groups_of_user(self, user_uuid):
