@@ -1497,7 +1497,7 @@ class DSpaceClient:
         @return: List of User objects matching the query
         """
         url = f"{self.API_ENDPOINT}/eperson/epersons/search/isNotMemberOf"
-        params = parse_params(group=group_uuid, query=query, embeds=embeds)
+        params = parse_params(params={"group": group_uuid, "query": query}, embeds=embeds)
         r = self.api_get(url, params=params)
         r_json = parse_json(response=r)
         users = []
