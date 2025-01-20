@@ -1594,6 +1594,93 @@ class DSpaceClient:
 
         return groups
     
+    def get_subgroups(self, parent_uuid, page=0, size=20):
+        """
+        Get all subgroups of a parent group
+        @param parent_uuid: UUID of the parent group
+        @param page: Page number for pagination
+        @param size: Number of results per page
+        @return: List of Group objects
+        """
+        url = f"{self.API_ENDPOINT}/eperson/groups/{parent_uuid}/subgroups"
+        params = parse_params({"page": page, "size": size})
+        response = self.api_get(url, params=params)
+        response_json = parse_json(response=response)
+        subgroups = []
+
+        if "_embedded" in response_json and "groups" in response_json["_embedded"]:
+            for group_data in response_json["_embedded"]["groups"]:
+                subgroups.append(Group(group_data))
+
+        return subgroups
+
+    def add_subgroup(self, parent_uuid, child_uuid):
+        """
+        Add a subgroup to a parent group
+        @param parent_uuid: UUID of the parent group
+        @param child_uuid: UUID of the subgroup to add
+        @return: Boolean indicating success or failure
+        """
+        url = f"{self.API_ENDPOINT}/eperson/groups/{parent_uuid}/subgroups"
+        data = f"{self.API_ENDPOINT}/eperson/groups/{child_uuid}"
+        response = self.api_post_uri(url, uri_list=data, params=None)
+        if response.status_code == 204:
+            return True
+        elif response.status_code == 401:
+            logging.error("You are not authenticated")
+            return False
+        elif response.status_code == 403:
+            logging.error("You are not logged in with sufficient permissions")
+            return False
+        elif response.status_code == 404:
+            logging.error("The parent group doesn't exist")
+            return False
+        elif response.status_code == 422:
+            logging.error(
+                "The specified group is not found, or if adding the group would create a cyclic reference"
+            )
+            return False
+        else:
+            logging.error(
+                "Failed to add subgroup %s to group %s: %s",
+                child_uuid,
+                parent_uuid,
+                response.text,
+            )
+            return False
+
+    def remove_subgroup(self, parent_uuid, child_uuid):
+        """
+        Remove a subgroup from a parent group
+        @param parent_uuid: UUID of the parent group
+        @param child_uuid: UUID of the subgroup to remove
+        @return: Boolean indicating success or failure
+        """
+        url = f"{self.API_ENDPOINT}/eperson/groups/{parent_uuid}/subgroups/{child_uuid}"
+        response = self.api_delete(url, params=None)
+        if response.status_code == 204:
+            return True
+        if response.status_code == 401:
+            logging.error("You are not authenticated")
+            return False
+        elif response.status_code == 403:
+            logging.error("You are not logged in with sufficient permissions")
+            return False
+        elif response.status_code == 404:
+            logging.error("The parent group doesn't exist")
+            return False
+        elif response.status_code == 422:
+            logging.error("The specified group is not found")
+            return False
+        else:
+            logging.error(
+                "Failed to remove subgroup %s from group %s: %s",
+                child_uuid,
+                parent_uuid,
+                response.text,
+            )
+            return False
+    
     def update_group_name(self, uuid, new_name):
         """
         Update the name of a group
