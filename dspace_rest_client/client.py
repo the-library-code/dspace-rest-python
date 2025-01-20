@@ -1594,6 +1594,20 @@ class DSpaceClient:
 
         return groups
     
+    def delete_group(self, uuid):
+        """
+        Delete a group by UUID
+        @param uuid: UUID of the group
+        @return: Boolean indicating success or failure
+        """
+        url = f"{self.API_ENDPOINT}/eperson/groups/{uuid}"
+        response = self.api_delete(url)
+        if response.status_code == 204:
+            return True
+        else:
+            logging.error("Failed to delete group %s: %s", uuid, response.text)
+            return False
+    
     def get_group_by_uuid(self, uuid, embeds=None):
         """
         Fetch a single group by UUID
