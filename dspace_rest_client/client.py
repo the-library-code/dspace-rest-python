@@ -1423,6 +1423,29 @@ class DSpaceClient:
                 User(user_resource) for user_resource in r_json["_embedded"]["epersons"]
             ]
         return users
+    
+    def get_eperson_id_of_user(self):
+        """
+        Get the EPerson ID of the current user
+        authn/status response includes the eperson link
+        the uuid can be parsed from the eperson link and returned as text
+        @return: String of the user id or None in case of an error
+        """
+        url = f"{self.API_ENDPOINT}/authn/status"
+        try:
+            r = self.api_get(url)
+            r_json = parse_json(response=r)
+            if "_links" in r_json:
+                eperson_href = r_json["_links"]["eperson"]["href"]
+                path = urlparse(eperson_href).path
+                uuid = os.path.basename(path)
+                return uuid
+            else:
+                logging.error("EPerson link not found in response.")
+                return None
+        except Exception as e:
+            logging.error(f"Error retrieving EPerson ID: {e}")
+            return None
 
     def create_group(self, group, embeds=None):
         """
