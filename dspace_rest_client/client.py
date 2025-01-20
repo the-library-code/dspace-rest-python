@@ -1446,6 +1446,46 @@ class DSpaceClient:
         except Exception as e:
             logging.error(f"Error retrieving EPerson ID: {e}")
             return None
+        
+    def get_special_groups_of_user(self):
+        """
+        Get the special groups of a user
+        authn/status/specialGroups
+        @return: List of Group objects or None in case of an error
+        """
+        url = f"{self.API_ENDPOINT}/authn/status/specialGroups"
+        try:
+            r = self.api_get(url)
+            r_json = parse_json(response=r)
+            if "_embedded" in r_json and "specialGroups" in r_json["_embedded"]:
+                groups = [
+                    Group(group_resource)
+                    for group_resource in r_json["_embedded"]["specialGroups"]
+                ]
+                return groups
+            else:
+                logging.error("Special groups not found in response.")
+                return None
+        except Exception as e:
+            logging.error(f"Error retrieving special groups: {e}")
+            return None
+
+    def get_groups_of_user(self, user_uuid):
+        """
+        Get groups of a user
+        @param user_uuid: UUID of the user
+        @return: List of Group objects
+        """
+        url = f"{self.API_ENDPOINT}/eperson/epersons/{user_uuid}/groups"
+        r = self.api_get(url)
+        r_json = parse_json(response=r)
+        groups = []
+        if "_embedded" in r_json and "groups" in r_json["_embedded"]:
+            groups = [
+                Group(group_resource)
+                for group_resource in r_json["_embedded"]["groups"]
+            ]
+        return groups
 
     def create_group(self, group, embeds=None):
         """
