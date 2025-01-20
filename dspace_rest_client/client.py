@@ -1680,6 +1680,26 @@ class DSpaceClient:
                 response.text,
             )
             return False
+        
+    def search_groups_by_metadata(self, query, page=0, size=20):
+        """
+        Search for groups by metadata
+        @param query: Search query (UUID or group name)
+        @param page: Page number for pagination
+        @param size: Number of results per page
+        @return: List of Group objects
+        """
+        url = f"{self.API_ENDPOINT}/eperson/groups/search/byMetadata"
+        params = parse_params({"query": query, "page": page, "size": size})
+        response = self.api_get(url, params=params)
+        response_json = parse_json(response=response)
+        groups = []
+
+        if "_embedded" in response_json and "groups" in response_json["_embedded"]:
+            for group_data in response_json["_embedded"]["groups"]:
+                groups.append(Group(group_data))
+
+        return groups
     
     def update_group_name(self, uuid, new_name):
         """
