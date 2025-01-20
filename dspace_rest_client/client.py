@@ -1721,6 +1721,81 @@ class DSpaceClient:
 
         return epersons
     
+    def add_eperson_to_group(self, group_uuid, eperson_uuid):
+        """
+        Add an EPerson to a group
+        @param group_uuid: UUID of the group
+        @param eperson_uuid: UUID of the EPerson to add
+        @return: Boolean indicating success or failure
+        """
+        url = f"{self.API_ENDPOINT}/eperson/groups/{group_uuid}/epersons"
+        # check if the eperson exists and is valid
+        eperson = self.get_user_by_uuid(eperson_uuid)
+        if eperson is None:
+            logging.error("The specified EPerson does not exist")
+            return False
+        if not isinstance(eperson, User):
+            logging.error("Invalid EPerson object")
+            return False
+        # check if the group exists and is valid
+        group = self.get_group_by_uuid(group_uuid)
+        if group is None:
+            logging.error("The specified group does not exist")
+            return False
+        if not isinstance(group, Group):
+            logging.error("Invalid Group object")
+            return False
+        data = f"{self.API_ENDPOINT}/eperson/epersons/{eperson_uuid}"
+        response = self.api_post_uri(url, uri_list=data, params=None)
+        if response.status_code == 204:
+            return True
+        elif response.status_code == 401:
+            logging.error("You are not authenticated")
+            return False
+        elif response.status_code == 403:
+            logging.error("You are not logged in with sufficient permissions")
+            return False
+        elif response.status_code == 422:
+            logging.error("The specified group or EPerson is not found")
+            return False
+        else:
+            logging.error(
+                "Failed to add EPerson %s to group %s: %s",
+                eperson_uuid,
+                group_uuid,
+                response.text,
+            )
+            return False
+
+    def remove_eperson_from_group(self, group_uuid, eperson_uuid):
+        """
+        Remove an EPerson from a group
+        @param group_uuid: UUID of the group
+        @param eperson_uuid: UUID of the EPerson to remove
+        @return: Boolean indicating success or failure
+        """
+        url = f"{self.API_ENDPOINT}/eperson/groups/{group_uuid}/epersons/{eperson_uuid}"
+        response = self.api_delete(url, params=None)
+        if response.status_code == 204:
+            return True
+        elif response.status_code == 401:
+            logging.error("You are not authenticated")
+            return False
+        elif response.status_code == 403:
+            logging.error("You are not logged in with sufficient permissions")
+            return False
+        elif response.status_code == 422:
+            logging.error("The specified group or EPerson is not found")
+            return False
+        else:
+            logging.error(
+                "Failed to remove EPerson %s from group %s: %s",
+                eperson_uuid,
+                group_uuid,
+                response.text,
+            )
+            return False
+    
     def update_group_name(self, uuid, new_name):
         """
         Update the name of a group
