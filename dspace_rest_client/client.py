@@ -1701,6 +1701,26 @@ class DSpaceClient:
 
         return groups
     
+    def get_epersons_in_group(self, group_uuid, page=0, size=20):
+        """
+        Fetch all EPersons in a group
+        @param group_uuid: UUID of the group
+        @param page: Page number for pagination
+        @param size: Number of results per page
+        @return: List of User objects
+        """
+        url = f"{self.API_ENDPOINT}/eperson/groups/{group_uuid}/epersons"
+        params = parse_params({"page": page, "size": size})
+        response = self.api_get(url, params=params)
+        response_json = parse_json(response=response)
+        epersons = []
+
+        if "_embedded" in response_json and "epersons" in response_json["_embedded"]:
+            for eperson_data in response_json["_embedded"]["epersons"]:
+                epersons.append(User(eperson_data))
+
+        return epersons
+    
     def update_group_name(self, uuid, new_name):
         """
         Update the name of a group
