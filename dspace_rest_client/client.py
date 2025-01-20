@@ -1524,6 +1524,38 @@ class DSpaceClient:
         )
         r_json = parse_json(response=r)
         return User(r_json) if r_json else None
+    
+    def change_user_password(self, user_uuid, current_password, new_password):
+        """
+        Change the password of a user
+        @param user_uuid: UUID of the user
+        @param current_password: Current password of the user
+        @param new_password: New password for the user
+        @return: Boolean indicating success or failure
+        """
+        # TODO: ensure this is only triggered when the user management is done in DSpace directly.
+        # If the user management is done in an external system (e.g. LDAP), this method should not be used.
+        url = f"{self.API_ENDPOINT}/eperson/epersons/{user_uuid}"
+        r = self.api_patch(
+            url,
+            operation="add",
+            path="/password",
+            value={
+                "new_password": new_password,
+                "current_password": current_password,
+            },
+        )
+        if r.status_code == 200:
+            logging.info("Updated Password for user %s", user_uuid)
+            return True
+        elif r.status_code == 422:
+            logging.error(
+                "Password does not respect the rules configured in the regular expression."
+            )
+            return False
+        else:
+            logging.error("An error occurred updating the password.")
+            return False
 
     def create_group(self, group, embeds=None):
         """
