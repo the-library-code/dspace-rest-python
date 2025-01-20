@@ -1393,6 +1393,36 @@ class DSpaceClient:
         r = self.api_get(url, params=params)
         r_json = parse_json(response=r)
         return User(r_json) if r_json else None
+    
+    def search_user_by_email(self, email):
+        """
+        Search for a user by email
+        @param email: User's email address
+        @return: User object if found, None otherwise
+        """
+        url = f"{self.API_ENDPOINT}/eperson/epersons/search/byEmail"
+        params = {"email": email}
+        r = self.api_get(url, params=params)
+        r_json = parse_json(response=r)
+        return User(r_json) if r_json else None
+
+    def search_users_by_metadata(self, query, embeds=None):
+        """
+        Search users by metadata
+        @param query: Search query (UUID, name, email, etc.)
+        @param embeds: Optional list of resources to embed in response JSON
+        @return: List of User objects matching the query
+        """
+        url = f"{self.API_ENDPOINT}/eperson/epersons/search/byMetadata"
+        params = parse_params({"query": query}, embeds=embeds)
+        r = self.api_get(url, params=params)
+        r_json = parse_json(response=r)
+        users = []
+        if "_embedded" in r_json and "epersons" in r_json["_embedded"]:
+            users = [
+                User(user_resource) for user_resource in r_json["_embedded"]["epersons"]
+            ]
+        return users
 
     def create_group(self, group, embeds=None):
         """
