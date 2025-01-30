@@ -36,6 +36,7 @@ from .models import (
     User,
     Group,
     DSpaceObject,
+    DSpaceServerError
 )
 from . import __version__
 
@@ -594,7 +595,19 @@ class DSpaceClient:
         r = self.api_get(url, params, None)
         if r.status_code != 200:
             logging.error("Error encountered fetching resource: %s", r.text)
-            return None
+            if r.status_code == 500 or r.status_code == 405:
+                error_json = r.json()
+                raise DSpaceServerError(
+                    message=error_json.get('message'),
+                    status=error_json.get('status'),
+                    error=error_json.get('error'),
+                    timestamp=error_json.get('timestamp'),
+                    path=error_json.get('path')
+                )
+            else:
+                # TODO: This is a hack to handle the case where the server returns a 404 or some
+                # other error code that isn't as 'unexpected', so we don't break older scripts for now
+                return None
         # ValueError / JSON handling moved to static method
         return parse_json(r)
 

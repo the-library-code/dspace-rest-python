@@ -640,3 +640,22 @@ class SearchResult(HALResource):
             'type': self.type
         }
         return {**parent_dict, **dict}
+
+class DSpaceServerError(Exception):
+    """Exception raised when DSpace returns a 500 Internal Server Error response"""
+    def __init__(self, message, status=500, error=None, timestamp=None, path=None):
+        self.status = status
+        self.timestamp = timestamp
+        self.path = path
+        self.message = message
+        self.error = error
+        super().__init__(self.format_message())
+
+    def format_message(self):
+        parts = [f"DSpace Server Error ({self.status} {self.error})"]
+        if self.timestamp:
+            parts.append(f"Time: {self.timestamp}")
+        if self.path:
+            parts.append(f"Path: {self.path}")
+        parts.append(f"Message: {self.message}")
+        return " | ".join(parts)
