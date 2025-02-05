@@ -833,21 +833,6 @@ class DSpaceClient:
             params = {'parent': parent}
         return Collection(api_resource=parse_json(self.create_dso(url, params, data)))
 
-    def get_items(self):
-        """
-        Get all items
-        @return:        list of Item objects
-        """
-        url = f'{self.API_ENDPOINT}/core/items'
-        items = list()
-        r = self.api_get(url)
-        r_json = parse_json(r)
-        if '_embedded' in r_json:
-            if 'items' in r_json['_embedded']:
-                for item_resource in r_json['_embedded']['items']:
-                    items.append(Item(item_resource))
-        return items
-
     def get_item(self, uuid):
         """
         Get an item, given its UUID
@@ -864,29 +849,27 @@ class DSpaceClient:
             _logger.error(f'Invalid item UUID: {uuid}')
             return None
 
-    def get_items(self):
+    def get_items(self, page=0, size=20):
         """
         Get all archived items for a logged-in administrator. Admin only! Usually you will want to
         use search or browse methods instead of this method
         @return: A list of items, or an error
         """
         url = f'{self.API_ENDPOINT}/core/items'
-        # Empty item list
         items = list()
-        # Perform the actual request
-        r_json = self.fetch_resource(url)
-        # Empty list
-        items = list()
+        params = {}
+        if size is not None:
+            params['size'] = size
+        if page is not None:
+            params['page'] = page
+        r = self.api_get(url, params=params)
+        r_json = parse_json(response=r)
         if '_embedded' in r_json:
-            # This is a list of items
             if 'collections' in r_json['_embedded']:
                 for item_resource in r_json['_embedded']['items']:
                     items.append(Item(item_resource))
         elif 'uuid' in r_json:
-            # This is a single item
             items.append(Item(r_json))
-
-        # Return list (populated or empty)
         return items
 
     def create_item(self, parent, item):
