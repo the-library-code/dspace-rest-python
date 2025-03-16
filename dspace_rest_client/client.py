@@ -462,7 +462,7 @@ class DSpaceClient:
         if r.status_code == 201:
             # 201 Created - success!
             new_dso = parse_json(r)
-            _logger.info(f'{new_dso["type"]} {new_dso["uuid"]} created successfully!')
+            _logger.info(f'Object type[{new_dso["type"]}] uuid:[{new_dso["uuid"]}] created successfully!')
         else:
             _logger.error(f'create operation failed: {r.status_code}: {r.text} ({url})')
         return r
@@ -839,12 +839,13 @@ class DSpaceClient:
         @param uuid:    the UUID of the item
         @return:        the raw API response
         """
-        # TODO - return constructed Item object instead, handling errors here?
         url = f'{self.API_ENDPOINT}/core/items'
         try:
             id = UUID(uuid).version
             url = f'{url}/{uuid}'
-            return self.api_get(url, None, None)
+            r = self.api_get(url, None, None)
+            r_json = parse_json(response=r)
+            return Item(r_json)
         except ValueError:
             _logger.error(f'Invalid item UUID: {uuid}')
             return None
@@ -935,6 +936,25 @@ class DSpaceClient:
             url=url, operation=self.PatchOperation.ADD, path=path, value=patch_value)
 
         return dso_type(api_resource=parse_json(r))
+
+    def remove_metadata(self, dso, field):
+        """
+        Remove metadata
+        """
+        if dso is None or field is None or not isinstance(dso, DSpaceObject):
+            # TODO: separate these tests, and add better error handling
+            _logger.error('Invalid or missing DSpace object, field or value string')
+            return self
+
+        dso_type = type(dso)
+
+        # Place can be 0+ integer, or a hyphen - meaning "last"
+        path = f'/metadata/{field}'
+        url = dso.links['self']['href']
+
+        r = self.api_patch(url=url, operation=self.PatchOperation.REMOVE, path=path, value=None)
+        return dso_type(api_resource=parse_json(r))
+
 
     def create_user(self, user, token=None):
         """
