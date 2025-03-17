@@ -96,6 +96,7 @@ class DSpaceClient:
         self.PASSWORD = password
         self.SOLR_ENDPOINT = solr_endpoint
         self.solr = None
+        self._last_err = None
         try:
             import pysolr
             self.solr = pysolr.Solr(url=solr_endpoint, always_commit=True, timeout=300, auth=solr_auth)
@@ -113,6 +114,10 @@ class DSpaceClient:
         self.auth_request_headers = {'User-Agent': self.USER_AGENT}
         self.request_headers = {'Content-type': 'application/json', 'User-Agent': self.USER_AGENT}
         self.list_request_headers = {'Content-type': 'text/uri-list', 'User-Agent': self.USER_AGENT}
+
+    @property
+    def last_err(self):
+        return self._last_err
 
     def authenticate(self, retry=False):
         """
@@ -159,6 +164,25 @@ class DSpaceClient:
         # Default, return false
         return False
 
+    def verify_response(self, r, id_str: str, as_json: bool = False):
+        """
+            Verify response from API. If response is not 200, log error and return False.
+        """
+        if r.status_code != 200:
+            _logger.error(f'Error response [{id_str}]: {r.status_code}: {r.text} ... [ {r.url} ]')
+            self._last_err = r
+            return False
+
+        if as_json:
+            try:
+                r.json()
+            except ValueError:
+                _logger.error(f'Error parsing JSON response [{id_str}]: {r.text} ... [ {r.url} ]')
+                return False
+
+        return True
+
+
     def refresh_token(self):
         """
         If the DSPACE-XSRF-TOKEN appears, we need to update our local stored token and re-send our API request
@@ -176,6 +200,7 @@ class DSpaceClient:
         @param headers: any override headers (eg. with short-lived token for download)
         @return:        Response from API
         """
+        self._last_err = None
         if headers is None:
             headers = self.request_headers
         r = self.session.get(url, params=params, data=data, headers=headers)
@@ -192,6 +217,7 @@ class DSpaceClient:
         @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
         @return:        Response from API
         """
+        self._last_err = None
         r = self.session.post(url, json=json, params=params, headers=self.request_headers)
         self.update_token(r)
 
@@ -235,6 +261,7 @@ class DSpaceClient:
         @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
         @return:        Response from API
         """
+        self._last_err = None
         r = self.session.post(url, data=uri_list, params=params, headers=self.list_request_headers)
         self.update_token(r)
 
@@ -263,6 +290,7 @@ class DSpaceClient:
         @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
         @return:        Response from API
         """
+        self._last_err = None
         r = self.session.put(url, params=params, json=json, headers=self.request_headers)
         self.update_token(r)
 
@@ -292,6 +320,7 @@ class DSpaceClient:
         @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
         @return:        Response from API
         """
+        self._last_err = None
         r = self.session.delete(url, params=params, headers=self.request_headers)
         self.update_token(r)
 
@@ -322,6 +351,7 @@ class DSpaceClient:
         @return:
         @see https://github.com/DSpace/RestContract/blob/main/metadata-patch.md
         """
+        self._last_err = None
         if url is None:
             logging.error('Missing required URL argument')
             return None
@@ -873,6 +903,20 @@ class DSpaceClient:
             items.append(Item(r_json))
         return items
 
+    def get_owningCollection(self, item_uuid):
+        """
+            Get owningCollection
+        """
+        url = f'{self.API_ENDPOINT}/core/items/{item_uuid}/owningCollection'
+        try:
+            r = self.api_get(url, None, None)
+            self.verify_response(r, f"item:{item_uuid}",  True)
+            r_json = parse_json(response=r)
+            return Collection(r_json)
+        except ValueError:
+            _logger.error(f'Invalid owningCollection for UUID: {item_uuid}')
+            return None
+
     def create_item(self, parent, item):
         """
         Create an item beneath the given parent collection
@@ -942,7 +986,6 @@ class DSpaceClient:
         Remove metadata
         """
         if dso is None or field is None or not isinstance(dso, DSpaceObject):
-            # TODO: separate these tests, and add better error handling
             _logger.error('Invalid or missing DSpace object, field or value string')
             return self
 
