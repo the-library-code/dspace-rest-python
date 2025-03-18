@@ -401,7 +401,7 @@ class DSpaceClient:
         return r
 
     # PAGINATION
-    def search_objects(self, query=None, scope=None, filters=None, page=0, size=20, sort=None, dso_type=None):
+    def search_objects(self, query=None, scope=None, filters=None, page=0, size=20, sort=None, dso_type=None, details=None):
         """
         Do a basic search with optional query, filters and dsoType params.
         @param query:   query string
@@ -436,6 +436,8 @@ class DSpaceClient:
 
         # instead lots of 'does this key exist, etc etc' checks, just go for it and wrap in a try?
         try:
+            if details is not None:
+                details["page"] = r_json['_embedded']['searchResult']['page']
             results = r_json['_embedded']['searchResult']['_embedded']['objects']
             for result in results:
                 resource = result['_embedded']['indexableObject']
@@ -653,7 +655,7 @@ class DSpaceClient:
                 url = bundle.links['bitstreams']['href']
             else:
                 url = f'{self.API_ENDPOINT}/core/bundles/{bundle.uuid}/bitstreams'
-                _logger.warning(f'Cannot find bundle bitstream links, will try to construct manually: {url}')
+                _logger.info(f'Cannot find bundle bitstream links, will try to construct manually: {url}')
         # Perform the actual request. By now, our URL and parameter should be properly set
         params = {}
         if size is not None:
