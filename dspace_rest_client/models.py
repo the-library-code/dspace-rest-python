@@ -640,3 +640,38 @@ class SearchResult(HALResource):
             'type': self.type
         }
         return {**parent_dict, **dict}
+
+class ResourcePolicy(AddressableHALResource):
+    """
+    A resource policy to control access and authorization to DSpace objects
+    See: https://github.com/DSpace/RestContract/blob/main/resourcepolicies.md
+    """
+    type = 'resourcepolicy'
+    name = None
+    description = None
+    policyType = None
+    action = None
+    startDate = None
+    endDate = None
+
+    def __init__(self, api_resource):
+        super().__init__(api_resource)
+        if 'name' in api_resource:
+            self.name = api_resource['name']
+        if 'description' in api_resource:
+            self.description = api_resource['description']
+        if 'policyType' in api_resource:
+            self.policyType = api_resource['policyType']
+        if 'action' in api_resource:
+            self.action = api_resource['action']
+        if 'startDate' in api_resource:
+            self.startDate = api_resource['startDate']
+        if 'endDate' in api_resource:
+            self.endDate = api_resource['endDate']
+
+    def as_dict(self):
+        hal_dict = super().as_dict()
+        rp_dict = {'name': self.name, 'description': self.description, 'policyType': self.policyType, 'action': self.action, 'startDate': self.startDate, 'endDate': self.endDate}
+        return {**hal_dict, **rp_dict}
+
+
