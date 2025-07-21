@@ -36,6 +36,7 @@ from .models import (
     User,
     Group,
     DSpaceObject,
+    ResourcePolicy
 )
 from . import __version__
 
@@ -1478,3 +1479,17 @@ class DSpaceClient:
                 logging.error(f"Not found: {identifier}")
             else:
                 logging.error(f"Error resolving identifier {identifier} to DSO: {r.status_code}")
+
+    @paginated("resourcepolicies", ResourcePolicy)
+    def get_resource_policies_iter(do_paginate, self, parent=None, action=None, embeds=None):
+        if parent is None:
+            logging.error(f"Parent UUID is required")
+            return []
+        url = f"{self.API_ENDPOINT}/authz/resourcepolicies/search/resource"
+        params = parse_params({ "uuid": parent }, embeds)
+        if action is not None:
+            params['action'] = action
+        
+        return do_paginate(url, params)
+        
+
