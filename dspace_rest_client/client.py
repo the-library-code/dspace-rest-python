@@ -20,6 +20,7 @@ import json
 import logging
 import functools
 import os
+import resource
 from uuid import UUID
 
 import requests
@@ -109,6 +110,7 @@ class DSpaceClient:
         USER_AGENT = os.environ["USER_AGENT"]
     verbose = False
     ITER_PAGE_SIZE = 20
+    PROXY_DICT = dict("http"=os.environ["PROXY_URL"],"https"=os.environ["PROXY_URL"]) if "PROXY_URL" in os.environ else dict()
 
     # Simple enum for patch operation types
     class PatchOperation:
@@ -212,6 +214,7 @@ class DSpaceClient:
             self.LOGIN_URL,
             data={"user": self.USERNAME, "password": self.PASSWORD},
             headers=self.auth_request_headers,
+            proxies=dict(http='socks5://localhost:1080',https='socks5://localhost:1080'),
         )
         self.update_token(r)
 
@@ -245,7 +248,8 @@ class DSpaceClient:
 
         # Get and check authentication status
         r = self.session.get(
-            f"{self.API_ENDPOINT}/authn/status", headers=self.request_headers
+            f"{self.API_ENDPOINT}/authn/status", headers=self.request_headers,
+            proxies=dict(http='socks5://localhost:1080',https='socks5://localhost:1080')
         )
         if r.status_code == 200:
             r_json = parse_json(r)
@@ -275,7 +279,10 @@ class DSpaceClient:
         """
         if headers is None:
             headers = self.request_headers
-        r = self.session.get(url, params=params, data=data, headers=headers)
+        r = self.session.get(url, params=params, data=data,
+                             headers=headers, 
+                             proxies=dict(http='socks5://localhost:1080',https='socks5://localhost:1080')
+                             )
         self.update_token(r)
         return r
 
@@ -290,7 +297,8 @@ class DSpaceClient:
         @return:        Response from API
         """
         r = self.session.post(
-            url, json=json, params=params, headers=self.request_headers
+            url, json=json, params=params, headers=self.request_headers,
+            proxies=dict(http='socks5://localhost:1080',https='socks5://localhost:1080')
         )
         self.update_token(r)
 
@@ -322,7 +330,8 @@ class DSpaceClient:
         @return:        Response from API
         """
         r = self.session.post(
-            url, data=uri_list, params=params, headers=self.list_request_headers
+            url, data=uri_list, params=params, headers=self.list_request_headers,
+            proxies=dict(http='socks5://localhost:1080',https='socks5://localhost:1080')
         )
         self.update_token(r)
 
@@ -356,7 +365,8 @@ class DSpaceClient:
         @return:        Response from API
         """
         r = self.session.put(
-            url, params=params, json=json, headers=self.request_headers
+            url, params=params, json=json, headers=self.request_headers,
+            proxies=dict(http='socks5://localhost:1080',https='socks5://localhost:1080')
         )
         self.update_token(r)
 
@@ -1382,6 +1392,23 @@ class DSpaceClient:
 
         return do_paginate(url, params)
 
+    @paginated("groups", Group)
+    def search_groups_by_metadata_iter(do_paginate, self, query, embeds=None):
+        """
+        Search for groups by metadata
+        @param query: Search query (UUID or group name)
+        @param page: Page number for pagination
+        @param size: Number of results per page
+        @return: List of Group objects
+        """
+        url = f"{self.API_ENDPOINT}/eperson/groups/search/byMetadata"
+        if query is None:
+            query = ""
+        params = parse_params({"query": query}, embeds=embeds)
+
+        return do_paginate(url, params)
+
+
     def create_group(self, group, embeds=None):
         """
         Create a group
@@ -1482,6 +1509,12 @@ class DSpaceClient:
 
     @paginated("resourcepolicies", ResourcePolicy)
     def get_resource_policies_iter(do_paginate, self, parent=None, action=None, embeds=None):
+        """
+        Get resource policies (as an iterator) for a given parent object and action
+        @param parent: UUID of an object to which the policy applies
+        @param action: uppercase string matching the DSpace Constants action (READ, WRITE, etc)
+        @param embeds: Optional embeds to return with the search results (e.g. group)
+        """
         if parent is None:
             logging.error(f"Parent UUID is required")
             return []
@@ -1492,4 +1525,41 @@ class DSpaceClient:
         
         return do_paginate(url, params)
         
+
+    def create_resource_policy(self, resource_policy, parent=None, eperson=None, group=None ):
+        """
+        Create a new resource policy attached to an object (parent)
+        @param resource_policy: python ResourcePolicy object containing all the data expected by the REST API
+        @param parent: UUID of a parent object to which this policy applies
+        @param eperson: EPerson UUID to which this policy applies (optional, but eperson xor group param is required)
+        @param group: Group UUID to which this policy applies (optional, but eperson xor group param is required)
+        @return: User object constructed from the API response
+        """
+        if not isinstance(resource_policy, ResourcePolicy):
+            logging.error(f"ResourcePolicy object is required")
+            return None
+        if parent is None:
+            logging.error(f"DSpace Object UUID is required")
+            return None
+
+        params = parse_params({"resource": parent})
+        if eperson:
+            params['eperson'] = eperson
+        elif group:
+            params['group'] = group
+        else:
+            logging.error(f"Either EPerson or Group UUID is required")
+            return None
+
+        url = f"{self.API_ENDPOINT}/authz/resourcepolicies"
+        data = resource_policy.as_dict()
+        r = self.api_post(url, params=params, json=data)
+        if r.status_code == 200:
+            # 200 OK means Created - success! (why not 201 like others?)
+            new_policy = parse_json(r)
+            logging.info("%s %s created successfully!",
+                         new_policy["type"], new_policy["id"])
+            return ResourcePolicy(api_resource=new_policy)
+        else:
+            logging.error("create operation failed: %s: %s (%s)", r.status_code, r.text, url)
 
