@@ -20,7 +20,6 @@ import json
 import logging
 import functools
 import os
-import resource
 from uuid import UUID
 
 import requests
@@ -1344,6 +1343,10 @@ class DSpaceClient:
         )
 
     def delete_user(self, user):
+        """
+        Delete a user (EPerson)
+        @param user: User object to delete
+        """
         if not isinstance(user, User):
             logging.error("Must be a valid user")
             return None
@@ -1429,10 +1432,13 @@ class DSpaceClient:
         )
 
     def start_workflow(self, workspace_item):
+        """
+        Start workflow for a given workspace item (provided in url-list body)
+        @param params: dict of parameters to send with the POST request
+        @param uri_list: simple newline-separated string of URIs of each workspace item
+        """
         url = f"{self.API_ENDPOINT}/workflow/workflowitems"
         res = parse_json(self.api_post_uri(url, params=None, uri_list=workspace_item))
-        logging.debug(res)
-        # TODO: WIP
 
     def update_token(self, r):
         """
