@@ -38,7 +38,11 @@ from .models import (
     DSpaceObject,
     ResourcePolicy
 )
-from . import __version__
+try:
+    from importlib.metadata import version
+    __version__ = version("dspace-rest-client")
+except Exception:
+    __version__ = "unknown"
 
 __all__ = ["DSpaceClient"]
 
