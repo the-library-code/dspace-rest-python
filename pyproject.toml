@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=64", "setuptools-scm>=8", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -24,6 +24,7 @@ classifiers = [
 dependencies = [
     "requests >= 2.32.3",
     "pysolr >= 3.10.0",
+    "PySocks >= 1.7.1"
 ]
 requires-python = ">=3.8.0"
 
