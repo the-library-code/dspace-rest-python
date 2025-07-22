@@ -1,5 +1,18 @@
 # Changelog
 
+### 0.1.14
+
+Date: 2025-07-22
+
+PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.14/
+
+**Changes**
+
+1. Add `create_resource_policy` client method to add new policies to objects
+2. Add proxy support for outgoing requests
+3. Small pydoc improvements
+4. Added commented proxy example usage to `example.py`
+
 ### 0.1.13
 
 Date: 2024-12-11
