@@ -12,6 +12,7 @@ PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.14/
 2. Add proxy support for outgoing requests
 3. Small pydoc improvements
 4. Added commented proxy example usage to `example.py`
+5. Update build and publish procedure
 
 ### 0.1.13
 
