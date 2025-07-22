@@ -1,3 +1,4 @@
 requests~=2.32.3
 pysolr~=3.10.0
 setuptools~=47.1.0
+PySocks~=1.7.1
