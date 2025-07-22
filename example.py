@@ -22,6 +22,10 @@ DEFAULT_PASSWORD = 'password'
 URL = os.environ.get('DSPACE_API_ENDPOINT', DEFAULT_URL)
 USERNAME = os.environ.get('DSPACE_API_USERNAME', DEFAULT_USERNAME)
 PASSWORD = os.environ.get('DSPACE_API_PASSWORD', DEFAULT_PASSWORD)
+PROXY_DICT = os.environ.get('PROXY_DICT', dict())
+
+# Use proxy dict as a dictionary of protocol->url, like:
+proxies = dict(http='socks5://socks-proxy-host:port', https='socks5://socks-proxy-host:port')
 
 # Instantiate DSpace client
 # Note the 'fake_user_agent' setting here -- this will set a string like the following,
