@@ -109,7 +109,7 @@ class DSpaceClient:
         USER_AGENT = os.environ["USER_AGENT"]
     verbose = False
     ITER_PAGE_SIZE = 20
-    PROXY_DICT = dict("http"=os.environ["PROXY_URL"],"https"=os.environ["PROXY_URL"]) if "PROXY_URL" in os.environ else dict()
+    PROXY_DICT = dict(http=os.environ["PROXY_URL"],https=os.environ["PROXY_URL"]) if "PROXY_URL" in os.environ else dict()
 
     # Simple enum for patch operation types
     class PatchOperation:
@@ -162,6 +162,7 @@ class DSpaceClient:
         solr_endpoint=SOLR_ENDPOINT,
         solr_auth=SOLR_AUTH,
         fake_user_agent=False,
+        proxies=PROXY_DICT,
     ):
         """
         Accept optional API endpoint, username, password arguments using the OS environment
@@ -177,6 +178,7 @@ class DSpaceClient:
         self.USERNAME = username
         self.PASSWORD = password
         self.SOLR_ENDPOINT = solr_endpoint
+        self.proxies = proxies
         self.solr = pysolr.Solr(
             url=solr_endpoint, always_commit=True, timeout=300, auth=solr_auth
         )
@@ -213,7 +215,7 @@ class DSpaceClient:
             self.LOGIN_URL,
             data={"user": self.USERNAME, "password": self.PASSWORD},
             headers=self.auth_request_headers,
-            proxies=dict(http='socks5://localhost:1080',https='socks5://localhost:1080'),
+            proxies=self.proxies
         )
         self.update_token(r)
 
@@ -248,7 +250,7 @@ class DSpaceClient:
         # Get and check authentication status
         r = self.session.get(
             f"{self.API_ENDPOINT}/authn/status", headers=self.request_headers,
-            proxies=dict(http='socks5://localhost:1080',https='socks5://localhost:1080')
+            proxies=self.proxies
         )
         if r.status_code == 200:
             r_json = parse_json(r)
@@ -280,7 +282,7 @@ class DSpaceClient:
             headers = self.request_headers
         r = self.session.get(url, params=params, data=data,
                              headers=headers, 
-                             proxies=dict(http='socks5://localhost:1080',https='socks5://localhost:1080')
+                             proxies=self.proxies
                              )
         self.update_token(r)
         return r
@@ -297,7 +299,7 @@ class DSpaceClient:
         """
         r = self.session.post(
             url, json=json, params=params, headers=self.request_headers,
-            proxies=dict(http='socks5://localhost:1080',https='socks5://localhost:1080')
+            proxies=self.proxies
         )
         self.update_token(r)
 
@@ -330,7 +332,7 @@ class DSpaceClient:
         """
         r = self.session.post(
             url, data=uri_list, params=params, headers=self.list_request_headers,
-            proxies=dict(http='socks5://localhost:1080',https='socks5://localhost:1080')
+            proxies=self.proxies
         )
         self.update_token(r)
 
@@ -365,7 +367,7 @@ class DSpaceClient:
         """
         r = self.session.put(
             url, params=params, json=json, headers=self.request_headers,
-            proxies=dict(http='socks5://localhost:1080',https='socks5://localhost:1080')
+            proxies=self.proxies
         )
         self.update_token(r)
 
