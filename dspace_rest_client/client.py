@@ -848,9 +848,6 @@ class DSpaceClient:
                 if bundle is None:
                     logging.error("Bundle cannot be None")
                     return []
-                if bundle is None:
-                    logging.error("Bundle cannot be None")
-                    return []
                 url = f"{self.API_ENDPOINT}/core/bundles/{bundle.uuid}/bitstreams"
                 logging.warning(
                     "Cannot find bundle bitstream links, will try to construct manually: %s",
