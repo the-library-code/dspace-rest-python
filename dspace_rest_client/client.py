@@ -1183,8 +1183,6 @@ class DSpaceClient:
         @return: A list of items, or an error
         """
         url = f"{self.API_ENDPOINT}/core/items"
-        # Empty item list
-        items = []
         # Perform the actual request
         r_json = self.fetch_resource(url, params=parse_params(embeds=embeds))
         # Empty list
