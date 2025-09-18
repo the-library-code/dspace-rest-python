@@ -848,9 +848,6 @@ class DSpaceClient:
                 if bundle is None:
                     logging.error("Bundle cannot be None")
                     return []
-                if bundle is None:
-                    logging.error("Bundle cannot be None")
-                    return []
                 url = f"{self.API_ENDPOINT}/core/bundles/{bundle.uuid}/bitstreams"
                 logging.warning(
                     "Cannot find bundle bitstream links, will try to construct manually: %s",
@@ -1186,8 +1183,6 @@ class DSpaceClient:
         @return: A list of items, or an error
         """
         url = f"{self.API_ENDPOINT}/core/items"
-        # Empty item list
-        items = []
         # Perform the actual request
         r_json = self.fetch_resource(url, params=parse_params(embeds=embeds))
         # Empty list
