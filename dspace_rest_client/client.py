@@ -25,6 +25,7 @@ from uuid import UUID
 import requests
 from requests import Request
 import pysolr
+import smart_open
 
 from .models import (
     SimpleDSpaceObject,
@@ -912,7 +913,10 @@ class DSpaceClient:
         This is also why it directly implements the 'retry' functionality instead of relying on api_post.
         @param bundle:      python Bundle object
         @param name:        Bitstream name
-        @param path:        Local filesystem path to the file that will be uploaded
+        @param path:        Path to the file that will be uploaded. Can be a local filesystem path or any cloud 
+                            storage path supported by the smart_open library (e.g. 's3://bucket-name/path/to/file', 
+                            see list of supported providers here https://github.com/piskvorky/smart_open). Cloud 
+                            storage authentication is handled outside of this application.
         @param mime:        MIME string of the uploaded file
         @param metadata:    Full metadata JSON
         @param retry:       A 'retried' indicator. If the first attempt fails due to an expired or missing auth
@@ -925,10 +929,16 @@ class DSpaceClient:
         if metadata is None:
             metadata = {}
         url = f"{self.API_ENDPOINT}/core/bundles/{bundle.uuid}/bitstreams"
-        file = (name, open(path, "rb"), mime)
-        files = {"file": file}
-        properties = {"name": name, "metadata": metadata, "bundleName": bundle.name}
-        payload = {"properties": json.dumps(properties) + ";application/json"}
+
+        try:
+            with smart_open.open(path, "rb") as file_obj:
+                file = (name, file_obj.read(), mime)
+            files = {"file": file}
+            properties = {"name": name, "metadata": metadata, "bundleName": bundle.name}
+            payload = {"properties": json.dumps(properties) + ";application/json"}
+        except Exception as e:
+            logging.error("Error reading file from %s: %s", path, str(e))
+            return None
         h = self.session.headers
         h.update({"Content-Encoding": "gzip", "User-Agent": self.USER_AGENT})
         req = Request(
