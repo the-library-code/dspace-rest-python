@@ -6,7 +6,7 @@
 DSpace REST API client library. Intended to make interacting with DSpace in Python 3 easier, particularly
 when creating, updating, retrieving and deleting DSpace Objects.
 This client library is a work in progress and currently only implements the most basic functionality.
-It was originally created to assist with a migration of container structure, items and bistreams from a non-DSpace
+It was originally created to assist with a migration of container structure, items and bitstreams from a non-DSpace
 system to a new DSpace 7 repository.
 
 It needs a lot of expansion: resource policies and permissions, validation of prepared objects and responses,
@@ -537,7 +537,7 @@ class DSpaceClient:
             if r.status_code == 200:
                 # 200 OK - success!
                 updated_dso = dso_type(parse_json(r))
-                _logger.debug(f'{updated_dso.type} {updated_dso.uuid} updated sucessfully!')
+                _logger.debug(f'{updated_dso.type} {updated_dso.uuid} updated successfully!')
                 return updated_dso
             else:
                 _logger.error(f'update operation failed: {r.status_code}: {r.text} ({url})')
@@ -573,7 +573,7 @@ class DSpaceClient:
             r = self.api_delete(url, params=params)
             if r.status_code == 204:
                 # 204 No Content - success!
-                _logger.info(f'{url} was deleted sucessfully!')
+                _logger.info(f'{url} was deleted successfully!')
                 return r
             else:
                 _logger.error(f'update operation failed: {r.status_code}: {r.text} ({url})')
