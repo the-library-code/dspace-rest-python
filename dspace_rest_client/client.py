@@ -1571,8 +1571,8 @@ class DSpaceClient:
         url = f"{self.API_ENDPOINT}/authz/resourcepolicies"
         data = resource_policy.as_dict()
         r = self.api_post(url, params=params, json=data)
-        if r.status_code == 200:
-            # 200 OK means Created - success! (why not 201 like others?)
+        if r.status_code == 200 or r.status_code == 201:
+            # 200 OK or 201 Created means Created - success! (201 is used now, 200 perhaps in teh past?)
             new_policy = parse_json(r)
             logging.info("%s %s created successfully!",
                          new_policy["type"], new_policy["id"])
