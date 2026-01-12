@@ -1,5 +1,17 @@
 # Changelog
 
+### 0.1.15
+
+Date: 2026-01-12
+
+PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.15/
+
+**Changes**
+
+1. Fix `create_resource_policy` status code check
+2. Add support for uploading s3 resources (thanks to @ehanson8 / MIT Libraries) https://github.com/the-library-code/dspace-rest-python/pull/57
+3. Fix errors / tidy duplicate code in bundle handling (thanks to @alanorth) https://github.com/the-library-code/dspace-rest-python/pull/53
+
 ### 0.1.14
 
 Date: 2025-07-22
