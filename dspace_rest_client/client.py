@@ -463,6 +463,27 @@ class DSpaceClient:
         # ValueError / JSON handling moved to static method
         return parse_json(r)
 
+    def get_resourcepolicy(self, uuid, action='READ'):
+        """
+        Fetch resource policies for a given resource UUID and action.
+        @param uuid:    resource UUID to search for
+        @param action:  action name to filter by (default: READ)
+        @return:        Parsed JSON response from fetch_resource or None if error
+        """
+        try:
+            # Validate UUID
+            id = UUID(uuid).version
+            url = f'{self.API_ENDPOINT}/authz/resourcepolicies/search/resource'
+            params = {'uuid': uuid}
+            if action is not None:
+                params['action'] = action
+            r_json = self.fetch_resource(url, params=params)
+            arr = r_json['_embedded'].get('resourcepolicies') or []
+            return [ResourcePolicy(x) for x in arr]
+        except ValueError:
+            _logger.error(f'Invalid resource UUID: {uuid}')
+            return None
+
     def get_dso(self, url, uuid):
         """
         Base 'get DSpace Object' function.

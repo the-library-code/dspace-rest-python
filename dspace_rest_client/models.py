@@ -13,7 +13,7 @@ import json
 
 
 __all__ = ['DSpaceObject', 'HALResource', 'ExternalDataObject', 'SimpleDSpaceObject', 'Community',
-           'Collection', 'Item', 'Bundle', 'Bitstream', 'User', 'Group']
+           'Collection', 'Item', 'Bundle', 'Bitstream', 'User', 'Group', 'ResourcePolicy']
 
 
 class HALResource:
@@ -512,3 +512,29 @@ class RelationshipType(AddressableHALResource):
         super(RelationshipType, self).__init__(api_resource)
 
 
+class ResourcePolicy(AddressableHALResource):
+    """
+        DQ specific. Extends Addressable HAL Resource to model a resource policy.
+    """
+    def __init__(self, api_resource: dict):
+        super(ResourcePolicy, self).__init__(api_resource)
+        api_resource = api_resource or {}
+        self.name = api_resource.get('name')
+        self.description = api_resource.get('description')
+        self.startDate = api_resource.get('startDate')
+        self.endDate = api_resource.get('endDate')
+        self.type = api_resource.get('type')
+        self.action = api_resource.get('action')
+        self.policyType = api_resource.get('policyType')
+
+    def as_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'type': self.type,
+            'description': self.description,
+            'startDate': self.startDate,
+            'endDate': self.endDate,
+            'action': self.action,
+            'policyType': self.policyType,
+        }
