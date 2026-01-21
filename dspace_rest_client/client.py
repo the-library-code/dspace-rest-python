@@ -478,6 +478,9 @@ class DSpaceClient:
             if action is not None:
                 params['action'] = action
             r_json = self.fetch_resource(url, params=params)
+            if '_embedded' not in (r_json or {}):
+                _logger.debug(f"No resource policies found for resource UUID: {uuid} [{url}]")
+                return None
             arr = r_json['_embedded'].get('resourcepolicies') or []
             return [ResourcePolicy(x) for x in arr]
         except ValueError:
