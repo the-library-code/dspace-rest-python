@@ -28,7 +28,9 @@ class HALResource:
         Default constructor
         @param api_resource: optional API resource (JSON) from a GET response or successful POST can populate instance
         """
+        self._from_d = None
         if api_resource is not None:
+            self._from_d = api_resource
             if 'type' in api_resource:
                 self.type = api_resource['type']
             if '_links' in api_resource:
@@ -134,6 +136,10 @@ class DSpaceObject(HALResource):
             # alternatively - each item could implement getters, or a public method to return links
             if '_links' in api_resource:
                 self.links = api_resource['_links'].copy()
+
+    @property
+    def resourcePolicies(self):
+        return (self._from_d or {}).get('resourcePolicies')
 
     def add_metadata(self, field, value, language=None, authority=None, confidence=-1, place=None):
         """
