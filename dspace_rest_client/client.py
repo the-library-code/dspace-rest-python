@@ -404,7 +404,9 @@ class DSpaceClient:
         @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
         @return:        Response from API
         """
-        r = self.session.delete(url, params=params, headers=self.request_headers)
+        r = self.session.delete(
+            url, params=params, headers=self.request_headers, proxies=self.proxies
+        )
         self.update_token(r)
 
         if r.status_code == 403:
@@ -466,7 +468,11 @@ class DSpaceClient:
         # set headers
         # perform patch request
         r = self.session.patch(
-            url, json=[data], headers=self.request_headers, params=params
+            url,
+            json=[data],
+            headers=self.request_headers,
+            params=params,
+            proxies=self.proxies,
         )
         self.update_token(r)
 
@@ -950,7 +956,7 @@ class DSpaceClient:
             params=parse_params(embeds=embeds),
         )
         prepared_req = self.session.prepare_request(req)
-        r = self.session.send(prepared_req)
+        r = self.session.send(prepared_req, proxies=self.proxies)
         if "DSPACE-XSRF-TOKEN" in r.headers:
             t = r.headers["DSPACE-XSRF-TOKEN"]
             logging.debug("Updating token to %s", t)
@@ -1579,4 +1585,3 @@ class DSpaceClient:
             return ResourcePolicy(api_resource=new_policy)
         else:
             logging.error("create operation failed: %s: %s (%s)", r.status_code, r.text, url)
-
