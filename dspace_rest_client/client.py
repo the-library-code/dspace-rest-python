@@ -858,6 +858,7 @@ class DSpaceClient:
         metadata=None,
         embeds=None,
         retry=False,
+        reauthenticated=False,
     ):
         """
         Upload a file and create a bitstream for a specified parent bundle, from the uploaded file and
@@ -876,6 +877,7 @@ class DSpaceClient:
         @param metadata:    Full metadata JSON
         @param retry:       A 'retried' indicator. If the first attempt fails due to an expired or missing auth
                             token, the request will retry once, after the token is refreshed. (default: False)
+        @param reauthenticated An indicator, if we tried to reauthenticate in case of a http 403 status.
         @return:            constructed Bitstream object from the API response, or None if the operation failed.
         """
         # TODO: It is probably wise to allow the bundle UUID to be simply passed as an alternative to having the full
@@ -911,6 +913,8 @@ class DSpaceClient:
             logging.debug("Updating token to %s", t)
             self.session.headers.update({"X-XSRF-Token": t})
             self.session.cookies.update({"X-XSRF-Token": t})
+        # as this method doesn't return the request, we cannot use our @refresh_csft decorator
+        # we should enhance self.api_post to be able to send files and use our decorators
         if r.status_code == 403:
             r_json = parse_json(r)
             if "message" in r_json and "CSRF token" in r_json["message"]:
@@ -921,7 +925,12 @@ class DSpaceClient:
                     return self.create_bitstream(
                         bundle, name, path, mime, metadata, embeds, True
                     )
-
+        # as this method doesn't return the request, we cannot use our @reauthenticate decorator
+        # we should enhance self.api_post to be able to send files and use our decorators
+        if r.status_code == 401 and not reauthenticated:
+            self.reauthenticate
+            prepared_req = self.session.prepare_request(req)
+            r = self.session.send(prepared_req)
         if r.status_code == 201 or r.status_code == 200:
             # Success
             return Bitstream(api_resource=parse_json(r))
