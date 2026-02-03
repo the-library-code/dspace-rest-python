@@ -159,6 +159,19 @@ class DSpaceClient:
         return decorator
 
     @staticmethod
+    def reauthenticate(func):
+        @functools.wraps(func)
+        def decorated(self, *args, reauthenticate=True, **kwargs):
+            r = func(self, *args, **kwargs)
+            if r is None:
+                return r
+            if r.status_code == 401 and reauthenticate:
+                if self.authenticate():
+                    r = func(self, *args, **kwargs)
+            return r
+        return decorated
+
+    @staticmethod
     def refresh_csrf(func):
         @functools.wraps(func)
         def decorated(self, *args, refresh_csrf=True, **kwargs):
@@ -314,6 +327,7 @@ class DSpaceClient:
         self.update_token(r)
         return r
 
+    @reauthenticate
     @refresh_csrf
     def api_post(self, url, params, json):
         """
@@ -331,6 +345,7 @@ class DSpaceClient:
         self.update_token(r)
         return r
 
+    @reauthenticate
     @refresh_csrf 
     def api_post_uri(self, url, params, uri_list):
         """
@@ -348,6 +363,7 @@ class DSpaceClient:
         self.update_token(r)
         return r
 
+    @reauthenticate
     @refresh_csrf
     def api_put(self, url, params, json):
         """
@@ -365,6 +381,7 @@ class DSpaceClient:
         self.update_token(r)
         return r
 
+    @reauthenticate
     @refresh_csrf
     def api_delete(self, url, params):
         """
@@ -378,6 +395,7 @@ class DSpaceClient:
         self.update_token(r)
         return r
 
+    @reauthenticate
     @refresh_csrf
     def api_patch(self, url, operation, path, value, params=None):
         """
