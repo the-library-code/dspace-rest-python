@@ -156,9 +156,31 @@ class DSpaceClient:
                 return fun(do_paginate, self, *args, **kwargs)
 
             return decorated
-
         return decorator
 
+    @staticmethod
+    def refresh_csrf(func):
+        @functools.wraps(func)
+        def decorated(self, *args, refresh_csrf=True, **kwargs):
+            r = func(self, *args, **kwargs)
+            if r is None:
+                return r
+            if r.status_code == 403 and refresh_csrf:
+                logging.debug("Retrying request with updated CSRF token")
+                r = func(self, *args, **kwargs)
+                r_json = None
+                try:
+                    r_json = r.json()
+                except ValueError:
+                    logging.warning("Tried to refresh CSRF token after getting a 403, got a non json-response.")
+                    return r
+                if r is not None and "message" in r_json and "CSRF token" in r_json["message"]:
+                    logging.warning(
+                        "Too many retries updating token: %s: %s", r.status_code, r.text
+                    )
+            return r
+        return decorated
+    
     def __init__(
         self,
         api_endpoint=API_ENDPOINT,
@@ -292,14 +314,14 @@ class DSpaceClient:
         self.update_token(r)
         return r
 
-    def api_post(self, url, params, json, retry=False):
+    @refresh_csrf
+    def api_post(self, url, params, json):
         """
         Perform a POST request. Refresh XSRF token if necessary.
         POSTs are typically used to create objects.
         @param url:     DSpace REST API URL
         @param params:  Any parameters to include (eg ?parent=abbc-....)
         @param json:    Data in json-ready form (dict) to send as POST body (eg. item.as_dict())
-        @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
         @return:        Response from API
         """
         r = self.session.post(
@@ -307,32 +329,16 @@ class DSpaceClient:
             proxies=self.proxies
         )
         self.update_token(r)
-
-        if r.status_code == 403:
-            # 403 Forbidden
-            # If we had a CSRF failure, retry the request with the updated token
-            # After speaking in #dev it seems that these do need occasional refreshes but I suspect
-            # it's happening too often for me, so check for accidentally triggering it
-            r_json = parse_json(r)
-            if "message" in r_json and "CSRF token" in r_json["message"]:
-                if retry:
-                    logging.warning(
-                        "Too many retries updating token: %s: %s", r.status_code, r.text
-                    )
-                else:
-                    logging.debug("Retrying request with updated CSRF token")
-                    return self.api_post(url, params=params, json=json, retry=True)
-
         return r
 
-    def api_post_uri(self, url, params, uri_list, retry=False):
+    @refresh_csrf 
+    def api_post_uri(self, url, params, uri_list):
         """
         Perform a POST request. Refresh XSRF token if necessary.
         POSTs are typically used to create objects.
         @param url:     DSpace REST API URL
         @param params:  Any parameters to include (eg ?parent=abbc-....)
         @param uri_list: One or more URIs referencing objects
-        @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
         @return:        Response from API
         """
         r = self.session.post(
@@ -340,34 +346,16 @@ class DSpaceClient:
             proxies=self.proxies
         )
         self.update_token(r)
-
-        if r.status_code == 403:
-            # 403 Forbidden
-            # If we had a CSRF failure, retry the request with the updated token
-            # After speaking in #dev it seems that these do need occasional refreshes but I suspect
-            # it's happening too often for me, so check for accidentally triggering it
-            r_json = r.json()
-            if "message" in r_json and "CSRF token" in r_json["message"]:
-                if retry:
-                    logging.warning(
-                        "Too many retries updating token: %s: %s", r.status_code, r.text
-                    )
-                else:
-                    logging.debug("Retrying request with updated CSRF token")
-                    return self.api_post_uri(
-                        url, params=params, uri_list=uri_list, retry=True
-                    )
-
         return r
 
-    def api_put(self, url, params, json, retry=False):
+    @refresh_csrf
+    def api_put(self, url, params, json):
         """
         Perform a PUT request. Refresh XSRF token if necessary.
         PUTs are typically used to update objects.
         @param url:     DSpace REST API URL
         @param params:  Any parameters to include (eg ?parent=abbc-....)
         @param json:    Data in json-ready form (dict) to send as PUT body (eg. item.as_dict())
-        @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
         @return:        Response from API
         """
         r = self.session.put(
@@ -375,64 +363,28 @@ class DSpaceClient:
             proxies=self.proxies
         )
         self.update_token(r)
-
-        if r.status_code == 403:
-            # 403 Forbidden
-            # If we had a CSRF failure, retry the request with the updated token
-            # After speaking in #dev it seems that these do need occasional refreshes but I suspect
-            # it's happening too often for me, so check for accidentally triggering it
-            logging.debug(r.text)
-            # Parse response
-            r_json = parse_json(r)
-            if "message" in r_json and "CSRF token" in r_json["message"]:
-                if retry:
-                    logging.warning(
-                        "Too many retries updating token: %s: %s", r.status_code, r.text
-                    )
-                else:
-                    logging.debug("Retrying request with updated CSRF token")
-                    return self.api_put(url, params=params, json=json, retry=True)
-
         return r
 
-    def api_delete(self, url, params, retry=False):
+    @refresh_csrf
+    def api_delete(self, url, params):
         """
         Perform a DELETE request. Refresh XSRF token if necessary.
         DELETES are typically used to update objects.
         @param url:     DSpace REST API URL
         @param params:  Any parameters to include (eg ?parent=abbc-....)
-        @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
         @return:        Response from API
         """
         r = self.session.delete(url, params=params, headers=self.request_headers)
         self.update_token(r)
-
-        if r.status_code == 403:
-            # 403 Forbidden
-            # If we had a CSRF failure, retry the request with the updated token
-            # After speaking in #dev it seems that these do need occasional refreshes but I suspect
-            # it's happening too often for me, so check for accidentally triggering it
-            logging.debug(r.text)
-            # Parse response
-            r_json = parse_json(r)
-            if "message" in r_json and "CSRF token" in r_json["message"]:
-                if retry:
-                    logging.warning(
-                        "Too many retries updating token: %s: %s", r.status_code, r.text
-                    )
-                else:
-                    logging.debug("Retrying request with updated CSRF token")
-                    return self.api_delete(url, params=params, retry=True)
-
         return r
 
-    def api_patch(self, url, operation, path, value, params=None, retry=False):
+    @refresh_csrf
+    def api_patch(self, url, operation, path, value, params=None):
         """
         @param url: DSpace REST API URL
         @param operation: 'add', 'remove', 'replace', or 'move' (see PatchOperation enumeration)
         @param path: path to perform operation - eg, metadata, withdrawn, etc.
         @param value: new value for add or replace operations, or 'original' path for move operations
-        @param retry:   Has this method already been retried? Used if we need to refresh XSRF.
         @return:
         @see https://github.com/DSpace/RestContract/blob/main/metadata-patch.md
         """
@@ -470,22 +422,7 @@ class DSpaceClient:
         )
         self.update_token(r)
 
-        if r.status_code == 403:
-            # 403 Forbidden
-            # If we had a CSRF failure, retry the request with the updated token
-            # After speaking in #dev it seems that these do need occasional refreshes but I suspect
-            # it's happening too often for me, so check for accidentally triggering it
-            logging.debug(r.text)
-            r_json = parse_json(r)
-            if "message" in r_json and "CSRF token" in r_json["message"]:
-                if retry:
-                    logging.warning(
-                        "Too many retries updating token: %s: %s", r.status_code, r.text
-                    )
-                else:
-                    logging.debug("Retrying request with updated CSRF token")
-                    return self.api_patch(url, operation, path, value, params, True)
-        elif r.status_code == 200:
+        if r.status_code == 200:
             # 200 Success
             logging.info(
                 "successful patch update to %s %s", r.json()["type"], r.json()["id"]
