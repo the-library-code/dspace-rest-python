@@ -928,7 +928,7 @@ class DSpaceClient:
         # as this method doesn't return the request, we cannot use our @reauthenticate decorator
         # we should enhance self.api_post to be able to send files and use our decorators
         if r.status_code == 401 and not reauthenticated:
-            self.reauthenticate
+            self.authenticate()
             prepared_req = self.session.prepare_request(req)
             r = self.session.send(prepared_req)
         if r.status_code == 201 or r.status_code == 200:
