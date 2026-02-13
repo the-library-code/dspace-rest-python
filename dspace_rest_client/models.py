@@ -532,7 +532,12 @@ class ResourcePolicy(AddressableHALResource):
         self.type = api_resource.get('type')
         self.action = api_resource.get('action')
         self.policyType = api_resource.get('policyType')
-
+        self.groupName = None
+        self.groupUUID = None
+        if '_embedded' in api_resource:
+            if 'group' in api_resource['_embedded']:
+                self.groupName = api_resource['_embedded']['group'].get('name')
+                self.groupUUID = api_resource['_embedded']['group'].get('uuid')
     def as_dict(self):
         return {
             'id': self.id,
@@ -543,4 +548,6 @@ class ResourcePolicy(AddressableHALResource):
             'endDate': self.endDate,
             'action': self.action,
             'policyType': self.policyType,
+            'groupName': self.groupName,
+            'groupUUID': self.groupUUID,
         }
