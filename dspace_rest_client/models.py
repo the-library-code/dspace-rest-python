@@ -532,9 +532,11 @@ class ResourcePolicy(AddressableHALResource):
         self.type = api_resource.get('type')
         self.action = api_resource.get('action')
         self.policyType = api_resource.get('policyType')
-        self.groupName = None
-        self.groupUUID = None
-        if '_embedded' in api_resource:
+        # Check for direct groupName/groupUUID (cached format from as_dict())
+        self.groupName = api_resource.get('groupName')
+        self.groupUUID = api_resource.get('groupUUID')
+        # If not found, try extracting from _embedded structure (live API format)
+        if self.groupName is None and '_embedded' in api_resource:
             if 'group' in api_resource['_embedded']:
                 self.groupName = api_resource['_embedded']['group'].get('name')
                 self.groupUUID = api_resource['_embedded']['group'].get('uuid')
