@@ -487,6 +487,52 @@ class DSpaceClient:
             _logger.error(f'Invalid resource UUID: {uuid}')
             return None
 
+    def create_resourcepolicy(
+            self, resource_uuid, group_uuid, action='READ',
+            policy_name=None, start_date=None, end_date=None,
+    ):
+        """
+        Create a new resource policy for a given DSpace resource.
+        Uses POST /authz/resourcepolicies?resource=<uuid>&resource-type=bitstream
+        @param resource_uuid:   UUID of the target bitstream (or other resource)
+        @param group_uuid:      UUID of the group to grant access to
+        @param action:          action name (default: READ)
+        @param policy_name:     optional policy name
+        @param start_date:      optional start date string (ISO 8601)
+        @param end_date:        optional end date string (ISO 8601)
+        @return:                ResourcePolicy on success, None on failure
+        """
+        try:
+            UUID(resource_uuid)
+            UUID(group_uuid)
+        except ValueError:
+            _logger.error(f'Invalid UUID: resource={resource_uuid}, group={group_uuid}')
+            return None
+
+        url = f'{self.API_ENDPOINT}/authz/resourcepolicies'
+        params = {'resource': resource_uuid, 'resource-type': 'bitstream'}
+        data = {
+            'action': action,
+            'name': policy_name,
+            'startDate': start_date,
+            'endDate': end_date,
+        }
+        # Link to the group via the eperson-group URI
+        group_uri = f'{self.API_ENDPOINT}/eperson/groups/{group_uuid}'
+
+        r = self.api_post(url, params=params, json=data)
+        if r.status_code == 201:
+            rp = ResourcePolicy(parse_json(r))
+            _logger.info(f'Created resource policy id={rp.id} for resource {resource_uuid}')
+            # Now link the group to the newly created policy
+            rp_group_url = f'{self.API_ENDPOINT}/authz/resourcepolicies/{rp.id}/group'
+            self.api_post_uri(rp_group_url, params=None, uri_list=group_uri)
+            return rp
+
+        _logger.error(
+            f'Failed to create resource policy: {r.status_code}: {r.text}')
+        return None
+
     def get_dso(self, url, uuid):
         """
         Base 'get DSpace Object' function.
