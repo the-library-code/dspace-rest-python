@@ -478,14 +478,62 @@ class DSpaceClient:
             if action is not None:
                 params['action'] = action
             r_json = self.fetch_resource(url, params=params)
-            if '_embedded' not in (r_json or {}):
-                _logger.debug(f"No resource policies found for resource UUID: {uuid} [{url}]")
+            if r_json is None:
+                _logger.error(f"API call failed for resource UUID: {uuid}")
                 return None
+            if '_embedded' not in r_json:
+                _logger.debug(f"No resource policies found for resource UUID: {uuid} [{url}]")
+                return []
             arr = r_json['_embedded'].get('resourcepolicies') or []
             return [ResourcePolicy(x) for x in arr]
         except ValueError:
             _logger.error(f'Invalid resource UUID: {uuid}')
             return None
+
+    def create_resourcepolicy(
+            self, resource_uuid, group_uuid, action='READ',
+            start_date=None, end_date=None,
+    ):
+        """
+        Create a new resource policy for a given DSpace resource.
+        Uses POST /api/authz/resourcepolicies?resource=<uuid>&group=<uuid>
+        @param resource_uuid:   UUID of the target bitstream (or other resource)
+        @param group_uuid:      UUID of the group to grant access to
+        @param action:          action name (default: READ)
+        @param start_date:      optional start date string (ISO 8601, YYYY-MM-DD)
+        @param end_date:        optional end date string (ISO 8601, YYYY-MM-DD)
+        @return:                ResourcePolicy on success, None on failure
+        """
+        try:
+            UUID(resource_uuid)
+            UUID(group_uuid)
+        except ValueError:
+            _logger.error(f'Invalid UUID: resource={resource_uuid}, group={group_uuid}')
+            return None
+
+        url = f'{self.API_ENDPOINT}/authz/resourcepolicies'
+        params = {
+            'resource': resource_uuid,
+            'group': group_uuid,
+        }
+        data = {
+            'action': action,
+            'type': 'resourcepolicy',
+        }
+        if start_date is not None:
+            data['startDate'] = start_date
+        if end_date is not None:
+            data['endDate'] = end_date
+
+        r = self.api_post(url, params=params, json=data)
+        if r.status_code in (200, 201):
+            rp = ResourcePolicy(parse_json(r))
+            _logger.info(f'Created resource policy id={rp.id} for resource {resource_uuid}')
+            return rp
+
+        _logger.error(
+            f'Failed to create resource policy: {r.status_code}: {r.text}')
+        return None
 
     def get_dso(self, url, uuid):
         """
