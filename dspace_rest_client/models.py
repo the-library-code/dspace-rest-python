@@ -553,3 +553,6 @@ class ResourcePolicy(AddressableHALResource):
             'groupName': self.groupName,
             'groupUUID': self.groupUUID,
         }
+
+    def __repr__(self):
+        return f"ResourcePolicy: {self.name} [{self.groupName}] [action: {self.action}] [type: {self.type}]"
