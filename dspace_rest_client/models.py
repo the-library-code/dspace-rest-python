@@ -37,6 +37,10 @@ class HALResource:
                 self.links = api_resource['_links'].copy()
             else:
                 self.links = {'self': {'href': None}}
+            if '_embedded' in api_resource:
+                self.embedded = api_resource['_embedded'].copy()
+            else:
+                self.embedded = {}
 
 class AddressableHALResource(HALResource):
     id = None
@@ -421,12 +425,12 @@ class User(SimpleDSpaceObject):
     Extends DSpaceObject to implement specific attributes and methods for users (aka. EPersons)
     """
     type = 'user'
-    name = None,
-    netid = None,
-    lastActive = None,
-    canLogIn = False,
-    email = None,
-    requireCertificate = False,
+    name = None
+    netid = None
+    lastActive = None
+    canLogIn = False
+    email = None
+    requireCertificate = False
     selfRegistered = False
 
     def __init__(self, api_resource=None):
@@ -473,11 +477,11 @@ class InProgressSubmission(AddressableHALResource):
         if 'lastModified' in api_resource:
             self.lastModified = api_resource['lastModified']
         if 'step' in api_resource:
-            self.step = api_resource['lastModified']
+            self.step = api_resource['step']
         if 'sections' in api_resource:
             self.sections = api_resource['sections'].copy()
         if 'type' in api_resource:
-            self.lastModified = api_resource['lastModified']
+            self.type = api_resource['type']
 
     def as_dict(self):
         parent_dict = super(InProgressSubmission, self).as_dict()
@@ -508,7 +512,7 @@ class EntityType(AddressableHALResource):
         if 'label' in api_resource:
             self.label = api_resource['label']
         if 'type' in api_resource:
-            self.label = api_resource['type']
+            self.type = api_resource['type']
 
 class RelationshipType(AddressableHALResource):
     """
