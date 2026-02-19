@@ -781,14 +781,13 @@ class DSpaceClient:
             _logger.debug('Updating token to ' + t)
             self.session.headers.update({'X-XSRF-Token': t})
             self.session.cookies.update({'X-XSRF-Token': t})
-        if r.status_code == 403:
+        if not retry and r.status_code in (401, 403):
             r_json = parse_json(r)
             if 'message' in r_json and 'CSRF token' in r_json['message']:
-                if retry:
-                    _logger.error('Already retried... something must be wrong')
-                else:
-                    _logger.debug("Retrying request with updated CSRF token")
-                    return self.create_bitstream(bundle, name, path, mime, metadata, True)
+                _logger.debug("Retrying request with updated CSRF token")
+            else:
+                self.authenticate()
+            return self.create_bitstream(bundle, name, path, mime, metadata, True)
 
         if r.status_code == 201 or r.status_code == 200:
             # Success
