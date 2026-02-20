@@ -132,6 +132,8 @@ class DSpaceObject(HALResource):
                 self.handle = api_resource['handle']
             if 'metadata' in api_resource:
                 self.metadata = api_resource['metadata'].copy()
+            if 'lastModified' in api_resource:
+                self.lastModified = api_resource['lastModified']
             # Python interprets _ prefix as private so for now, renaming this and handling it separately
             # alternatively - each item could implement getters, or a public method to return links
             if '_links' in api_resource:
