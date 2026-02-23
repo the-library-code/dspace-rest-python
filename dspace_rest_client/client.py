@@ -496,15 +496,14 @@ class DSpaceClient:
                 params['action'] = action
             r_json = self.fetch_resource(url, params=params)
             if r_json is None:
-                _logger.error(f"API call failed for resource UUID: {uuid}")
                 return None
             if '_embedded' not in r_json:
                 _logger.debug(f"No resource policies found for resource UUID: {uuid} [{url}]")
                 return []
             arr = r_json['_embedded'].get('resourcepolicies') or []
             return [ResourcePolicy(x) for x in arr]
-        except ValueError:
-            _logger.error(f'Invalid resource UUID: {uuid}')
+        except ValueError as e:
+            _logger.error(f'Invalid resource UUID: {uuid} - {e}')
             return None
 
     def create_resourcepolicy(
