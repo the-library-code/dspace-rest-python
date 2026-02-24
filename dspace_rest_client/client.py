@@ -218,7 +218,7 @@ class DSpaceClient:
         self.update_token(r)
         return r
 
-    def api_post(self, url, params, json, retry=False):
+    def api_post(self, url, params, json, retry=False, timeout=None):
         """
         Perform a POST request. Refresh XSRF token if necessary.
         POSTs are typically used to create objects.
@@ -230,7 +230,7 @@ class DSpaceClient:
         """
         self._last_err = None
         r = self.session.post(url, json=json, params=params, headers=self.request_headers,
-                              proxies=self.proxies)
+                              proxies=self.proxies, timeout=timeout)
         self.update_token(r)
 
         if r.status_code == 403:
@@ -244,7 +244,7 @@ class DSpaceClient:
                     _logger.warning(f'Too many retries updating token: {r.status_code}: {r.text}')
                 else:
                     _logger.debug("Retrying request with updated CSRF token")
-                    return self.api_post(url, params=params, json=json, retry=True)
+                    return self.api_post(url, params=params, json=json, retry=True, timeout=timeout)
 
         # we need to log in again, if there is login error. This is a bad
         # solution copied from the past
@@ -260,7 +260,7 @@ class DSpaceClient:
                     self.authenticate()
                     # Try to authenticate and repeat the request 3 times -
                     # if it won't happen log error
-                    return self.api_post(url, params=params, json=json, retry=False)
+                    return self.api_post(url, params=params, json=json, retry=False, timeout=timeout)
         return r
 
     def api_post_uri(self, url, params, uri_list, retry=False):
