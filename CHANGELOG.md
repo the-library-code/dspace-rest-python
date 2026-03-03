@@ -2,7 +2,7 @@
 
 ### 0.1.17
 
-Date: 2026-03-04
+Date: 2026-03-03
 
 PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.17/
 
