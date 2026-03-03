@@ -3,7 +3,7 @@ This client library allows Python 3 scripts (Python 2 probably compatible but no
 DSpace 7+ repositories, using the DSpace REST API.
 
 This library is a work in progress and so far offers basic create, update, retrieve functionality for
-Community, Collection, Bundle, Item, Bitstream, Group and User (EPerson) objects.
+Community, Collection, Bundle, Item, Bitstream, Group and User (EPerson), and Resource Policy objects.
 
 Help with extending the scope and improving the code is always welcome!
 
