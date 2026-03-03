@@ -1,10 +1,22 @@
 # Changelog
 
+### 0.1.17
+
+Date: 2026-03-04
+
+PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.17/
+
+**Changes**
+
+1. Add `lastModified` attribute to `DSpaceObject` safely (thanks @ehanson8) https://github.com/the-library-code/dspace-rest-python/pull/61
+2. Add reauth decorator / loop to session request calls and refactor XSRF retries to a similar decorator (thanks @pnbecker) https://github.com/the-library-code/dspace-rest-python/pull/59
+3. Pass the optional `proxies` parameter to `api_delete`, `api_patch` and `session.send` as well as get/post (thanks @pnbecker) https://github.com/the-library-code/dspace-rest-python/pull/60
+
 ### 0.1.16
 
 Date: 2026-01-12
 
-PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.15/
+PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.16/
 
 **Changes**
 
