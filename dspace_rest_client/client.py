@@ -877,7 +877,7 @@ class DSpaceClient:
         @param metadata:    Full metadata JSON
         @param retry:       A 'retried' indicator. If the first attempt fails due to an expired or missing auth
                             token, the request will retry once, after the token is refreshed. (default: False)
-        @param reauthenticated An indicator, if we tried to reauthenticate in case of a http 403 status.
+        @param reauthenticated: Whether a reauthenticate attempt (in case of HTTP 401) was already attempted.
         @return:            constructed Bitstream object from the API response, or None if the operation failed.
         """
         # TODO: It is probably wise to allow the bundle UUID to be simply passed as an alternative to having the full
