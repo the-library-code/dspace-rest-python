@@ -130,6 +130,14 @@ class DSpaceObject(AddressableHALResource):
             # alternatively - each item could implement getters, or a public method to return links
             self.links = api_resource.get('_links', {}).copy()
 
+    def get_metadata_values(self, field):
+        """
+        Return metadata values as simple list of strings
+        @param field: DSpace field, eg. dc.creator
+        @return: list of strings
+        """
+        return self.metadata.get(field, [])
+
     def add_metadata(self, field, value, language=None, authority=None, confidence=-1, place=None):
         """
         Add metadata to a DSO. This is performed on the local object only, it is not an API operation (see patch)
@@ -229,13 +237,7 @@ class Item(SimpleDSpaceObject):
             self.discoverable = api_resource.get('discoverable', False)
             self.withdrawn = api_resource.get('withdrawn', False)
 
-    def get_metadata_values(self, field):
-        """
-        Return metadata values as simple list of strings
-        @param field: DSpace field, eg. dc.creator
-        @return: list of strings
-        """
-        return self.metadata.get(field, [])
+
 
     def as_dict(self):
         """
