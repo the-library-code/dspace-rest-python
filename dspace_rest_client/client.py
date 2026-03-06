@@ -26,6 +26,7 @@ import requests
 from requests import Request
 import pysolr
 import smart_open
+from typing import cast, IO
 
 from .models import (
     SimpleDSpaceObject,
@@ -901,7 +902,7 @@ class DSpaceClient:
         url = f"{self.API_ENDPOINT}/core/bundles/{bundle.uuid}/bitstreams"
 
         try:
-            with smart_open.open(path, "rb") as file_obj:  # type: ignore[attr-defined]
+            with cast(IO[bytes], smart_open.open(path, "rb")) as file_obj:
                 file = (name, file_obj.read(), mime)
             files = {"file": file}
             properties = {"name": name, "metadata": metadata, "bundleName": bundle.name}
