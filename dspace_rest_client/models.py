@@ -19,45 +19,38 @@ class HALResource:
     """
     Base class to represent HAL+JSON API resources
     """
-    links = {}
-    type = None
-    embedded = dict()
 
     def __init__(self, api_resource=None):
         """
         Default constructor
         @param api_resource: optional API resource (JSON) from a GET response or successful POST can populate instance
         """
+        self.links = {}
+        self.embedded = {} 
+        self.type = None
+
         if api_resource is not None:
-            if 'type' in api_resource:
-                self.type = api_resource['type']
-            if '_links' in api_resource:
-                self.links = api_resource['_links'].copy()
-            if '_embedded' in api_resource:
-                self.embedded = api_resource['_embedded'].copy()
-            else:
-                self.links = {'self': {'href': None}}
+            self.links = api_resource.get('_links', {}).copy()
+            self.embedded = api_resource.get('_embedded', {}).copy()
+            self.type = api_resource.get('type')
+        else:
+            self.links = {'self': {'href': None}}
 
 class AddressableHALResource(HALResource):
-    id = None
     def __init__(self, api_resource=None):
         super().__init__(api_resource)
+        self.id = None
+
         if api_resource is not None:
-            if 'id' in api_resource:
-                self.id = api_resource['id']
+            self.id = api_resource.get('id')
 
     def as_dict(self):
         return {'id': self.id}
 
-class ExternalDataObject(HALResource):
+class ExternalDataObject(AddressableHALResource):
     """
     Generic External Data Object as configured in DSpace's external data providers framework
     """
-    id = None
-    display = None
-    value = None
-    externalSource = None
-    metadata = {}
 
     def __init__(self, api_resource=None):
         """
@@ -65,20 +58,16 @@ class ExternalDataObject(HALResource):
         @param api_resource: optional API resource (JSON) from a GET response or successful POST can populate instance
         """
         super().__init__(api_resource)
-
+        self.display = None
+        self.value = None
+        self.externalSource = None
         self.metadata = {}
 
         if api_resource is not None:
-            if 'id' in api_resource:
-                self.id = api_resource['id']
-            if 'display' in api_resource:
-                self.display = api_resource['display']
-            if 'value' in api_resource:
-                self.value = api_resource['value']
-            if 'externalSource' in api_resource:
-                self.externalSource = api_resource['externalSource']
-            if 'metadata' in api_resource:
-                self.metadata = api_resource['metadata'].copy()
+            self.display = api_resource.get('display')
+            self.value = api_resource.get('value')
+            self.externalSource = api_resource.get('externalSource')
+            self.metadata = api_resource.get('metadata').copy()
 
     def get_metadata_values(self, field):
         """
@@ -86,10 +75,7 @@ class ExternalDataObject(HALResource):
         @param field: DSpace field, eg. dc.creator
         @return: list of strings
         """
-        values = []
-        if field in self.metadata:
-            values = self.metadata[field]
-        return values
+        return self.metadata.get(field, [])
 
 
 class DSpaceObject(HALResource):
@@ -99,13 +85,6 @@ class DSpaceObject(HALResource):
     operations are included in the dict returned by asDict(). Implements toJSON() as well.
     This class can be used on its own but is generally expected to be extended by other types: Item, Bitstream, etc.
     """
-    uuid = None
-    name = None
-    handle = None
-    metadata = {}
-    lastModified = None
-    type = None
-    parent = None
 
     def __init__(self, api_resource=None, dso=None):
         """
@@ -113,31 +92,29 @@ class DSpaceObject(HALResource):
         @param api_resource: optional API resource (JSON) from a GET response or successful POST can populate instance
         """
         super().__init__(api_resource)
+        self.uuid = None
+        self.name = None
+        self.handle = None
+        self.lastModified = None
+        self.parent = None
         self.type = None
         self.metadata = {}
 
         if dso is not None:
             api_resource = dso.as_dict()
             self.links = dso.links.copy()
+
         if api_resource is not None:
-            if 'id' in api_resource:
-                self.id = api_resource['id']
-            if 'uuid' in api_resource:
-                self.uuid = api_resource['uuid']
-            if 'type' in api_resource:
-                self.type = api_resource['type']
-            if 'name' in api_resource:
-                self.name = api_resource['name']
-            if 'handle' in api_resource:
-                self.handle = api_resource['handle']
-            if 'metadata' in api_resource:
-                self.metadata = api_resource['metadata'].copy()
-            if 'lastModified' in api_resource:
-                self.lastModified = api_resource['lastModified']
+            self.id = api_resource.get('id')
+            self.uuid = api_resource.get('uuid')
+            self.type = api_resource.get('type')
+            self.name = api_resource.get('name')
+            self.handle = api_resource.get('handle')
+            self.metadata = api_resource.get('metadata', {}).copy()
+            self.lastModified = api_resource.get('lastModified')
             # Python interprets _ prefix as private so for now, renaming this and handling it separately
             # alternatively - each item could implement getters, or a public method to return links
-            if '_links' in api_resource:
-                self.links = api_resource['_links'].copy()
+            self.links = api_resource.get('_links', {}).copy()
 
     def add_metadata(self, field, value, language=None, authority=None, confidence=-1, place=None):
         """
@@ -155,17 +132,14 @@ class DSpaceObject(HALResource):
         """
         if field is None or value is None:
             return
-        if field in self.metadata:
-            values = self.metadata[field]
-            # Ensure we don't accidentally duplicate place value. If this place already exists, the user
-            # should use a patch operation or we should allow another way to re-order / re-calc place?
-            # For now, we'll just set place to none if it matches an existing place
-            for v in values:
-                if v['place'] == place:
-                    place = None
-                    break
-        else:
-            values = []
+        values = self.metadata.get(field, [])
+        # Ensure we don't accidentally duplicate place value. If this place already exists, the user
+        # should use a patch operation or we should allow another way to re-order / re-calc place?
+        # For now, we'll just set place to none if it matches an existing place
+        for v in values:
+            if v['place'] == place:
+                place = None
+                break
         values.append({"value": value, "language": language,
                        "authority": authority, "confidence": confidence, "place": place})
         self.metadata[field] = values
@@ -218,17 +192,17 @@ class Item(SimpleDSpaceObject):
     """
     Extends DSpaceObject to implement specific attributes and functions for items
     """
-    type = 'item'
-    inArchive = False
-    discoverable = False
-    withdrawn = False
-    metadata = {}
 
     def __init__(self, api_resource=None, dso=None):
         """
         Default constructor. Call DSpaceObject init then set item-specific attributes
         @param api_resource: API result object to use as initial data
         """
+        self.type = 'item'
+        self.inArchive = False
+        self.discoverable = False
+        self.withdrawn = False
+        self.metadata = {}
         if dso is not None:
             api_resource = dso.as_dict()
             super().__init__(dso=dso)
@@ -237,9 +211,9 @@ class Item(SimpleDSpaceObject):
 
         if api_resource is not None:
             self.type = 'item'
-            self.inArchive = api_resource['inArchive'] if 'inArchive' in api_resource else True
-            self.discoverable = api_resource['discoverable'] if 'discoverable' in api_resource else False
-            self.withdrawn = api_resource['withdrawn'] if 'withdrawn' in api_resource else False
+            self.inArchive = api_resource.get('inArchive', True)
+            self.discoverable = api_resource.get('discoverable', False)
+            self.withdrawn = api_resource.get('withdrawn', False)
 
     def get_metadata_values(self, field):
         """
@@ -247,10 +221,7 @@ class Item(SimpleDSpaceObject):
         @param field: DSpace field, eg. dc.creator
         @return: list of strings
         """
-        values = []
-        if field in self.metadata:
-            values = self.metadata[field]
-        return values
+        return self.metadata.get(field, [])
 
     def as_dict(self):
         """
@@ -274,7 +245,6 @@ class Community(SimpleDSpaceObject):
     """
     Extends DSpaceObject to implement specific attributes and functions for communities
     """
-    type = 'community'
 
     def __init__(self, api_resource=None):
         """
@@ -299,7 +269,6 @@ class Collection(SimpleDSpaceObject):
     """
     Extends DSpaceObject to implement specific attributes and functions for collections
     """
-    type = 'collection'
 
     def __init__(self, api_resource=None):
         """
@@ -323,7 +292,6 @@ class Bundle(DSpaceObject):
     """
     Extends DSpaceObject to implement specific attributes and functions for bundles
     """
-    type = 'bundle'
 
     def __init__(self, api_resource=None):
         """
@@ -347,15 +315,6 @@ class Bitstream(DSpaceObject):
     """
     Extends DSpaceObject to implement specific attributes and functions for bundles
     """
-    type = 'bitstream'
-    # Bitstream has a few extra fields specific to file storage
-    bundleName = None
-    sizeBytes = None
-    checkSum = {
-        'checkSumAlgorithm': 'MD5',
-        'value': None
-    }
-    sequenceId = None
 
     def __init__(self, api_resource=None):
         """
@@ -364,14 +323,20 @@ class Bitstream(DSpaceObject):
         """
         super().__init__(api_resource)
         self.type = 'bitstream'
-        if 'bundleName' in api_resource:
-            self.bundleName = api_resource['bundleName']
-        if 'sizeBytes' in api_resource:
-            self.sizeBytes = api_resource['sizeBytes']
-        if 'checkSum' in api_resource:
-            self.checkSum = api_resource['checkSum']
-        if 'sequenceId' in api_resource:
-            self.sequenceId = api_resource['sequenceId']
+        # Bitstream has a few extra fields specific to file storage
+        self.bundleName = None
+        self.sizeBytes = None
+        self.checkSum = {
+            'checkSumAlgorithm': 'MD5',
+            'value': None
+        }
+        self.sequenceId = None
+
+        if api_resource is not None:
+            self.bundleName = api_resource.get('bundleName')
+            self.sizeBytes = api_resource.get('sizeBytes')
+            self.checkSum = api_resource.get('checkSum', self.checkSum)
+            self.sequenceId = api_resource.get('sequenceId')
 
     def as_dict(self):
         """
@@ -399,28 +364,24 @@ class BitstreamFormat(AddressableHALResource):
           "type": "bitstreamformat"
         }
     """
-    shortDescription = None
-    description = None
-    mimetype = None
-    supportLevel = None
-    internal = False
-    extensions = []
-    type = 'bitstreamformat'
 
     def __init__(self, api_resource):
         super(BitstreamFormat, self).__init__(api_resource)
-        if 'shortDescription' in api_resource:
-            self.shortDescription = api_resource['shortDescription']
-        if 'description' in api_resource:
-            self.description = api_resource['description']
-        if 'mimetype' in api_resource:
-            self.mimetype = api_resource['mimetype']
-        if 'supportLevel' in api_resource:
-            self.supportLevel = api_resource['supportLevel']
-        if 'internal' in api_resource:
-            self.internal = api_resource['internal']
-        if 'extensions' in api_resource:
-            self.extensions = api_resource['extensions'].copy()
+        self.shortDescription = None
+        self.description = None
+        self.mimetype = None
+        self.supportLevel = None
+        self.internal = False
+        self.extensions = []
+        self.type = 'bitstreamformat'
+
+        if api_resource is not None:
+            self.shortDescription = api_resource.get('shortDescription')
+            self.description = api_resource.get('description')
+            self.mimetype = api_resource.get('mimetype')
+            self.supportLevel = api_resource.get('supportLevel')
+            self.internal = api_resource.get('internal')
+            self.extensions = api_resource.get('extensions', {}).copy()
 
     def as_dict(self):
         parent_dict = super(BitstreamFormat, self).as_dict()
@@ -439,9 +400,6 @@ class Group(DSpaceObject):
     """
     Extends DSpaceObject to implement specific attributes and methods for groups (aka. EPersonGroups)
     """
-    type = 'group'
-    name = None
-    permanent = False
 
     def __init__(self, api_resource=None):
         """
@@ -449,11 +407,13 @@ class Group(DSpaceObject):
         @param api_resource: API result object to use as initial data
         """
         super().__init__(api_resource)
+        self.name = None
+        self.permanent = False
         self.type = 'group'
-        if 'name' in api_resource:
-            self.name = api_resource['name']
-        if 'permanent' in api_resource:
-            self.permanent = api_resource['permanent']
+
+        if api_resource is not None:
+            self.name = api_resource.get('name')
+            self.permanent = api_resource.get('permanent')
 
     def as_dict(self):
         """
@@ -469,14 +429,6 @@ class User(SimpleDSpaceObject):
     """
     Extends DSpaceObject to implement specific attributes and methods for users (aka. EPersons)
     """
-    type = 'user'
-    name = None
-    netid = None
-    lastActive = None
-    canLogIn = False
-    email = None
-    requireCertificate = False
-    selfRegistered = False
 
     def __init__(self, api_resource=None):
         """
@@ -484,21 +436,23 @@ class User(SimpleDSpaceObject):
         @param api_resource: API result object to use as initial data
         """
         super().__init__(api_resource)
+        self.name = None
+        self.netid = None
+        self.lastActive = None
+        self.canLogIn = False
+        self.email = None
+        self.requireCertificate = False
+        self.selfRegistered = False
         self.type = 'user'
-        if 'name' in api_resource:
-            self.name = api_resource['name']
-        if 'netid' in api_resource:
-            self.netid = api_resource['netid']
-        if 'lastActive' in api_resource:
-            self.lastActive = api_resource['lastActive']
-        if 'canLogIn' in api_resource:
-            self.canLogIn = api_resource['canLogIn']
-        if 'email' in api_resource:
-            self.email = api_resource['email']
-        if 'requireCertificate' in api_resource:
-            self.requireCertificate = api_resource['requireCertificate']
-        if 'selfRegistered' in api_resource:
-            self.selfRegistered = api_resource['selfRegistered']
+
+        if api_resource is not None:
+            self.name = api_resource.get('name')
+            self.netid = api_resource.get('netid')
+            self.lastActive = api_resource.get('lastActive')
+            self.canLogIn = api_resource.get('canLogIn')
+            self.email = api_resource.get('email')
+            self.requireCertificate = api_resource.get('requireCertificate')
+            self.selfRegistered = api_resource.get('selfRegistered')
 
     def as_dict(self):
         """
@@ -512,21 +466,19 @@ class User(SimpleDSpaceObject):
         return {**dso_dict, **user_dict}
 
 class InProgressSubmission(AddressableHALResource):
-    lastModified = None
-    step = None
-    sections = {}
-    type = None
 
     def __init__(self, api_resource):
         super().__init__(api_resource)
-        if 'lastModified' in api_resource:
-            self.lastModified = api_resource['lastModified']
-        if 'step' in api_resource:
-            self.step = api_resource['lastModified']
-        if 'sections' in api_resource:
-            self.sections = api_resource['sections'].copy()
-        if 'type' in api_resource:
-            self.lastModified = api_resource['lastModified']
+        self.lastModified = None
+        self.step = None
+        self.sections = {}
+        self.type = None
+
+        if api_resource is not None:
+            self.lastModified = api_resource.get('lastModified')
+            self.step = api_resource.get('lastModified')
+            self.sections = api_resource.get('sections', {}).copy()
+            self.lastModified = api_resource.get('lastModified')
 
     def as_dict(self):
         parent_dict = super().as_dict()
@@ -554,10 +506,11 @@ class EntityType(AddressableHALResource):
     """
     def __init__(self, api_resource):
         super().__init__(api_resource)
-        if 'label' in api_resource:
-            self.label = api_resource['label']
-        if 'type' in api_resource:
-            self.label = api_resource['type']
+        self.label = None
+        self.type = 'entitytype' 
+
+        if api_resource is not None:
+            self.label = api_resource.get('label')
 
 class RelationshipType(AddressableHALResource):
     """
@@ -617,24 +570,22 @@ class SearchResult(HALResource):
           }
         }, "facets"... (TODO)
     """
-    query = None
-    scope = None
-    appliedFilters = [] 
-    type = None
 
     def __init__(self, api_resource):
         super().__init__(api_resource)
-        if 'lastModified' in api_resource:
-            self.lastModified = api_resource['lastModified']
-        if 'step' in api_resource:
-            self.step = api_resource['step']
-        if 'sections' in api_resource:
-            self.sections = api_resource['sections'].copy()
-        if 'type' in api_resource and self.type is not None:
-            self.type = api_resource['type']
+        self.query = None
+        self.scope = None
+        self.appliedFilters = [] 
+        self.type = None
+
+        if api_resource is not None:
+            self.lastModified = api_resource.get('lastModified')
+            self.step = api_resource.get('step')
+            self.sections = api_resource.get('sections', {}).copy()
+            self.type = api_resource.get('type')
 
     def as_dict(self):
-        parent_dict = super().as_dict()
+        parent_dict = super().__dict__
         dict = {
             'lastModified': self.lastModified,
             'step': self.step,
@@ -648,28 +599,24 @@ class ResourcePolicy(AddressableHALResource):
     A resource policy to control access and authorization to DSpace objects
     See: https://github.com/DSpace/RestContract/blob/main/resourcepolicies.md
     """
-    type = 'resourcepolicy'
-    name = None
-    description = None
-    policyType = None
-    action = None
-    startDate = None
-    endDate = None
 
     def __init__(self, api_resource):
         super().__init__(api_resource)
-        if 'name' in api_resource:
-            self.name = api_resource['name']
-        if 'description' in api_resource:
-            self.description = api_resource['description']
-        if 'policyType' in api_resource:
-            self.policyType = api_resource['policyType']
-        if 'action' in api_resource:
-            self.action = api_resource['action']
-        if 'startDate' in api_resource:
-            self.startDate = api_resource['startDate']
-        if 'endDate' in api_resource:
-            self.endDate = api_resource['endDate']
+        self.type = 'resourcepolicy'
+        self.name = None
+        self.description = None
+        self.policyType = None
+        self.action = None
+        self.startDate = None
+        self.endDate = None
+
+        if api_resource is not None:
+            self.name = api_resource.get('name')
+            self.description = api_resource.get('description')
+            self.policyType = api_resource.get('policyType')
+            self.action = api_resource.get('action')
+            self.startDate = api_resource.get('startDate')
+            self.endDate = api_resource.get('endDate')
 
     def as_dict(self):
         hal_dict = super().as_dict()
