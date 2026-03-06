@@ -10,6 +10,7 @@ when creating, updating, retrieving and deleting DSpace Objects.
 @author Kim Shepherd <kim@shepherd.nz>
 """
 import json
+from typing import Any
 
 __all__ = ['DSpaceObject', 'HALResource', 'ExternalDataObject', 'SimpleDSpaceObject', 'Community',
            'Collection', 'Item', 'Bundle', 'Bitstream', 'BitstreamFormat', 'User', 'Group']
@@ -35,7 +36,7 @@ class HALResource:
         else:
             self.links = {'self': {'href': None}}
 
-    def as_dict(self):
+    def as_dict(self) -> dict[str, Any]:
         return {'type': self.type}
 
 class AddressableHALResource(HALResource):
@@ -295,11 +296,11 @@ class Collection(SimpleDSpaceObject):
         super().__init__(api_resource)
 
     def as_dict(self):
-        dso_dict = super().as_dict()
         """
         Return a dict representation of this Collection, based on super with collection-specific attributes added
         @return: dict of Item for API use
         """
+        dso_dict = super().as_dict()
         collection_dict = {}
         return {**dso_dict, **collection_dict}
 
@@ -492,7 +493,6 @@ class InProgressSubmission(AddressableHALResource):
             self.lastModified = api_resource.get('lastModified')
             self.step = api_resource.get('step')
             self.sections = api_resource.get('sections', {}).copy()
-            self.lastModified = api_resource.get('lastModified')
 
     def as_dict(self):
         parent_dict = super().as_dict()
