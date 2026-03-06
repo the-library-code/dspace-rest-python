@@ -488,7 +488,7 @@ class InProgressSubmission(AddressableHALResource):
 
         if api_resource is not None:
             self.lastModified = api_resource.get('lastModified')
-            self.step = api_resource.get('lastModified')
+            self.step = api_resource.get('step')
             self.sections = api_resource.get('sections', {}).copy()
             self.lastModified = api_resource.get('lastModified')
 
