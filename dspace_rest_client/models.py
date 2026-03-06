@@ -306,7 +306,7 @@ class Bundle(DSpaceObject):
     """
     Extends DSpaceObject to implement specific attributes and functions for bundles
     """
-    type = "collection"
+    type = "bundle"
 
     def __init__(self, api_resource=None):
         """
@@ -547,18 +547,19 @@ class SearchResult(HALResource):
         self.appliedFilters = [] 
 
         if api_resource is not None:
-            self.lastModified = api_resource.get('lastModified')
-            self.step = api_resource.get('step')
-            self.sections = api_resource.get('sections', {}).copy()
+            self.query = api_resource.get('query')
+            self.scope = api_resource.get('scope')
+            self.appliedFilters = api_resource.get('appliedFilters', []).copy()
 
     def as_dict(self):
-        parent_dict = super().__dict__
-        dict = {
-            'lastModified': self.lastModified,
-            'step': self.step,
-            'sections': self.sections,
+        parent_dict = super().as_dict()
+        this_dict = {
+            'query': self.query,
+            'scope': self.scope,
+            'appliedFilters': self.appliedFilters
         }
-        return {**parent_dict, **dict}
+
+        return {**parent_dict, **this_dict}
 
 class ResourcePolicy(AddressableHALResource):
     """
