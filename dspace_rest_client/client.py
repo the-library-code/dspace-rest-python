@@ -121,6 +121,7 @@ class DSpaceClient:
         REPLACE = "replace"
         MOVE = "move"
 
+    @staticmethod
     def paginated(embed_name, item_constructor, embedding=lambda x: x):
         """
         @param embed_name: The key under '_embedded' in the JSON response that contains the
@@ -151,7 +152,7 @@ class DSpaceClient:
                         else:
                             url = None
 
-                return fun(do_paginate, self, *args, **kwargs)
+                return fun(self, do_paginate, *args, **kwargs)
 
             return decorated
         return decorator
@@ -523,8 +524,8 @@ class DSpaceClient:
         embedding=lambda x: x["_embedded"]["searchResult"],
     )
     def search_objects_iter(
-        do_paginate,
         self,
+        do_paginate,
         query=None,
         scope=None,
         filters=None,
@@ -751,7 +752,7 @@ class DSpaceClient:
         return bundles
 
     @paginated("bundles", Bundle)
-    def get_bundles_iter(do_paginate, self, parent, sort=None, embeds=None):
+    def get_bundles_iter(self, do_paginate, parent, sort=None, embeds=None):
         """
         Get bundles for an item, automatically handling pagination by requesting the next page when all items from one page have been consumed
         @param parent:  python Item object, from which the UUID will be referenced in the URL.
@@ -836,7 +837,7 @@ class DSpaceClient:
                 return bitstreams
 
     @paginated("bitstreams", Bitstream)
-    def get_bitstreams_iter(do_paginate, self, bundle, sort=None, embeds=None):
+    def get_bitstreams_iter(self, do_paginate, bundle, sort=None, embeds=None):
         """
         Get all bitstreams for a specific bundle, automatically handling pagination by requesting the next page when all items from one page have been consumed
         @param bundle:  A python Bundle object to parse for bitstream links to retrieve
@@ -900,7 +901,7 @@ class DSpaceClient:
         url = f"{self.API_ENDPOINT}/core/bundles/{bundle.uuid}/bitstreams"
 
         try:
-            with smart_open.open(path, "rb") as file_obj:
+            with smart_open.open(path, "rb") as file_obj:  # type: ignore[attr-defined]
                 file = (name, file_obj.read(), mime)
             files = {"file": file}
             properties = {"name": name, "metadata": metadata, "bundleName": bundle.name}
@@ -1017,7 +1018,7 @@ class DSpaceClient:
         return communities
 
     @paginated("communities", Community)
-    def get_communities_iter(do_paginate, self, sort=None, top=False, embeds=None):
+    def get_communities_iter(self, do_paginate, sort=None, top=False, embeds=None):
         """
         Get communities as an iterator, automatically handling pagination by requesting the next page when all items from one page have been consumed
         @param top:     whether to restrict search to top communities (default: false)
@@ -1108,7 +1109,7 @@ class DSpaceClient:
         return collections
 
     @paginated("collections", Collection)
-    def get_collections_iter(do_paginate, self, community=None, sort=None, embeds=None):
+    def get_collections_iter(self, do_paginate, community=None, sort=None, embeds=None):
         """
         Get collections as an iterator, automatically handling pagination by requesting the next page when all items from one page have been consumed
         @param community:   Community object. If present, collections for a community
@@ -1368,7 +1369,7 @@ class DSpaceClient:
         return users
 
     @paginated("epersons", User)
-    def get_users_iter(do_paginate, self, sort=None, embeds=None):
+    def get_users_iter(self, do_paginate, sort=None, embeds=None):
         """
         Get an iterator of users (epersons) in the DSpace instance, automatically handling pagination by requesting the next page when all items from one page have been consumed
         @param sort:     Optional sort parameter
@@ -1383,7 +1384,7 @@ class DSpaceClient:
         return do_paginate(url, params)
 
     @paginated("groups", Group)
-    def search_groups_by_metadata_iter(do_paginate, self, query, embeds=None):
+    def search_groups_by_metadata_iter(self, do_paginate, query, embeds=None):
         """
         Search for groups by metadata
         @param query: Search query (UUID or group name)
@@ -1501,7 +1502,7 @@ class DSpaceClient:
                 logging.error(f"Error resolving identifier {identifier} to DSO: {r.status_code}")
 
     @paginated("resourcepolicies", ResourcePolicy)
-    def get_resource_policies_iter(do_paginate, self, parent=None, action=None, embeds=None):
+    def get_resource_policies_iter(self, do_paginate, parent=None, action=None, embeds=None):
         """
         Get resource policies (as an iterator) for a given parent object and action
         @param parent: UUID of an object to which the policy applies
