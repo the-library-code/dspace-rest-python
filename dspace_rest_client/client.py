@@ -92,7 +92,6 @@ class DSpaceClient:
     """
 
     # Set up basic environment, variables
-    session = None
     API_ENDPOINT = "http://localhost:8080/server/api"
     SOLR_ENDPOINT = "http://localhost:8983/solr"
     SOLR_AUTH = None
@@ -112,7 +111,6 @@ class DSpaceClient:
         SOLR_AUTH = os.environ["SOLR_AUTH"]
     if "USER_AGENT" in os.environ:
         USER_AGENT = os.environ["USER_AGENT"]
-    verbose = False
     ITER_PAGE_SIZE = 20
     PROXY_DICT = dict(http=os.environ["PROXY_URL"],https=os.environ["PROXY_URL"]) if "PROXY_URL" in os.environ else dict()
 
@@ -284,7 +282,7 @@ class DSpaceClient:
         # Update headers with new bearer token if present
         if "Authorization" in r.headers:
             self.session.headers.update(
-                {"Authorization": r.headers.get("Authorization")}
+                {"Authorization": r.headers["Authorization"]}
             )
 
         # Get and check authentication status
@@ -294,7 +292,7 @@ class DSpaceClient:
         )
         if r.status_code == 200:
             r_json = parse_json(r)
-            if "authenticated" in r_json and r_json["authenticated"] is True:
+            if r_json is not None and "authenticated" in r_json and r_json["authenticated"] is True:
                 logging.info("Authenticated successfully as %s", self.USERNAME)
                 return r_json["authenticated"]
 
@@ -503,6 +501,8 @@ class DSpaceClient:
 
         r_json = self.fetch_resource(url=url, params={**params, **filters})
 
+        if r_json is None:
+            return dsos
         # instead lots of 'does this key exist, etc etc' checks, just go for it and wrap in a try?
         try:
             results = r_json["_embedded"]["searchResult"]["_embedded"]["objects"]
@@ -611,8 +611,10 @@ class DSpaceClient:
         if r.status_code == 201:
             # 201 Created - success!
             new_dso = parse_json(r)
+            if new_dso is None:
+                return r
             logging.info(
-                "%s %s created successfully!", new_dso["type"], new_dso["uuid"]
+                "%s %s created successfully!", new_dso.get("type"), new_dso.get("uuid")
             )
         else:
             logging.error(
@@ -702,7 +704,7 @@ class DSpaceClient:
                 )
                 return None
         except ValueError as e:
-            logging.error("Error deleting DSO %s: %s", dso.uuid, e)
+            logging.error("Error deleting DSO %s: %s", url, e)
             return None
 
     # PAGINATION
@@ -739,7 +741,7 @@ class DSpaceClient:
         try:
             if single_result:
                 bundles.append(Bundle(r_json))
-            if not single_result:
+            if not single_result and r_json is not None:
                 resources = r_json["_embedded"]["bundles"]
                 for resource in resources:
                     bundles.append(Bundle(resource))
@@ -825,7 +827,7 @@ class DSpaceClient:
             params["sort"] = sort
 
         r_json = self.fetch_resource(url, params=params)
-        if "_embedded" in r_json:
+        if r_json is not None and "_embedded" in r_json:
             if "bitstreams" in r_json["_embedded"]:
                 bitstreams = []
                 for bitstream_resource in r_json["_embedded"]["bitstreams"]:
@@ -891,6 +893,10 @@ class DSpaceClient:
         # TODO: Better error detection and handling for file reading
         if metadata is None:
             metadata = {}
+        if bundle is None:
+            logging.error("Cannot create bitstream without bundle")
+            return None
+
         url = f"{self.API_ENDPOINT}/core/bundles/{bundle.uuid}/bitstreams"
 
         try:
@@ -923,7 +929,7 @@ class DSpaceClient:
         # we should enhance self.api_post to be able to send files and use our decorators
         if r.status_code == 403:
             r_json = parse_json(r)
-            if "message" in r_json and "CSRF token" in r_json["message"]:
+            if r_json is not None and "message" in r_json and "CSRF token" in r_json["message"]:
                 if retry:
                     logging.error("Already retried... something must be wrong")
                 else:
@@ -1000,11 +1006,11 @@ class DSpaceClient:
         r_json = self.fetch_resource(url, params)
         # Empty list
         communities = []
-        if "_embedded" in r_json:
+        if r_json is not None and "_embedded" in r_json:
             if "communities" in r_json["_embedded"]:
                 for community_resource in r_json["_embedded"]["communities"]:
                     communities.append(Community(community_resource))
-        elif "uuid" in r_json:
+        elif r_json is not None and "uuid" in r_json:
             # This is a single communities
             communities.append(Community(r_json))
         # Return list (populated or empty)
@@ -1089,12 +1095,12 @@ class DSpaceClient:
         r_json = self.fetch_resource(url, params=params)
         # Empty list
         collections = []
-        if "_embedded" in r_json:
+        if r_json is not None and "_embedded" in r_json:
             # This is a list of collections
             if "collections" in r_json["_embedded"]:
                 for collection_resource in r_json["_embedded"]["collections"]:
                     collections.append(Collection(collection_resource))
-        elif "uuid" in r_json:
+        elif r_json is not None and "uuid" in r_json:
             # This is a single collection
             collections.append(Collection(r_json))
 
@@ -1167,12 +1173,12 @@ class DSpaceClient:
         r_json = self.fetch_resource(url, params=parse_params(embeds=embeds))
         # Empty list
         items = []
-        if "_embedded" in r_json:
+        if r_json is not None and "_embedded" in r_json:
             # This is a list of items
             if "items" in r_json["_embedded"]:
                 for item_resource in r_json["_embedded"]["items"]:
                     items.append(Item(item_resource))
-        elif "uuid" in r_json:
+        elif r_json is not None and "uuid" in r_json:
             # This is a single item
             items.append(Item(r_json))
 
@@ -1355,7 +1361,7 @@ class DSpaceClient:
             params["sort"] = sort
         r = self.api_get(url, params=params)
         r_json = parse_json(response=r)
-        if "_embedded" in r_json:
+        if r_json is not None and "_embedded" in r_json:
             if "epersons" in r_json["_embedded"]:
                 for user_resource in r_json["_embedded"]["epersons"]:
                     users.append(User(user_resource))
@@ -1544,6 +1550,9 @@ class DSpaceClient:
         if r.status_code == 200 or r.status_code == 201:
             # 200 OK or 201 Created means Created - success! (201 is used now, 200 perhaps in teh past?)
             new_policy = parse_json(r)
+            if new_policy is None:
+                logging.error("Response containing new resource policy is empty or invalid")
+                return None
             logging.info("%s %s created successfully!",
                          new_policy["type"], new_policy["id"])
             return ResourcePolicy(api_resource=new_policy)
