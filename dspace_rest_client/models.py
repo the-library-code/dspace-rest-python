@@ -101,6 +101,9 @@ class DSpaceObject(AddressableHALResource):
     The variables here are present in an _embedded response and the ones required for POST / PUT / PATCH
     operations are included in the dict returned by asDict(). Implements toJSON() as well.
     This class can be used on its own but is generally expected to be extended by other types: Item, Bitstream, etc.
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/DSpaceObject.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/DSpaceObjectRest.html
     """
 
     def __init__(self, api_resource=None, dso=None):
@@ -209,12 +212,19 @@ class SimpleDSpaceObject(DSpaceObject):
     """
     Objects that share similar simple API methods eg. PUT update for full metadata replacement, can have handles, etc.
     By default this is Item, Community, Collection classes
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/DSpaceObject.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/DSpaceObjectRest.html
     """
 
 
 class Item(SimpleDSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and functions for items
+    Extends DSpaceObject to implement specific attributes and functions for items.
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/Item.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/ItemRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/items.md
     """
     type = "item"
 
@@ -260,7 +270,11 @@ class Item(SimpleDSpaceObject):
 
 class Community(SimpleDSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and functions for communities
+    Extends DSpaceObject to implement specific attributes and functions for communities.
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/Community.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/CommunityRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/communities.md
     """
     type = 'community'
 
@@ -284,7 +298,11 @@ class Community(SimpleDSpaceObject):
 
 class Collection(SimpleDSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and functions for collections
+    Extends DSpaceObject to implement specific attributes and functions for collections.
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/Collection.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/CollectionRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/collections.md
     """
     type = "collection"
 
@@ -307,7 +325,11 @@ class Collection(SimpleDSpaceObject):
 
 class Bundle(DSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and functions for bundles
+    Extends DSpaceObject to implement specific attributes and functions for bundles.
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/Bundle.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/BundleRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/bundles.md
     """
     type = "bundle"
 
@@ -330,7 +352,11 @@ class Bundle(DSpaceObject):
 
 class Bitstream(DSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and functions for bundles
+    Extends DSpaceObject to implement specific attributes and functions for bitstreams.
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/Bitstream.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/BitstreamRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/bitstreams.md
     """
     type = "bitstream"
 
@@ -367,19 +393,11 @@ class Bitstream(DSpaceObject):
 
 class BitstreamFormat(AddressableHALResource):
     """
-    Bitstream format: https://github.com/DSpace/RestContract/blob/main/bitstreamformats.md
-    example:
-        {
-          "shortDescription": "XML",
-          "description": "Extensible Markup Language",
-          "mimetype": "text/xml",
-          "supportLevel": "KNOWN",
-          "internal": false,
-          "extensions": [
-                  "xml"
-          ],
-          "type": "bitstreamformat"
-        }
+    Represents format / MIME metadata for a bitstream.
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/BitstreamFormat.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/BitstreamFormatRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/bitstreamformats.md
     """
     type = "bitstreamformat"
 
@@ -414,7 +432,11 @@ class BitstreamFormat(AddressableHALResource):
 
 class Group(DSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and methods for groups (aka. EPersonGroups)
+    Extends DSpaceObject to implement specific attributes and methods for groups (aka. EPersonGroups).
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/eperson/Group.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/GroupRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/epersongroups.md
     """
     type = 'group'
 
@@ -443,7 +465,13 @@ class Group(DSpaceObject):
 
 class User(SimpleDSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and methods for users (aka. EPersons)
+    Extends DSpaceObject to implement specific attributes and methods for users (aka. EPersons).
+    This is one class that is deliberately named differently to the base implementation, out of
+    protest ;) But perhaps it needs to be aliased or aligned with DSpace API for usability...
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/eperson/EPerson.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/EPersonRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/epersons.md
     """
     type = "eperson"
 
@@ -482,6 +510,15 @@ class User(SimpleDSpaceObject):
         return {**dso_dict, **user_dict}
 
 class InProgressSubmission(AddressableHALResource):
+    """
+    Extends AddressableHALResource to implement an 'in-progress' item (i.e. workspace or workflow item).
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/InProgressSubmission.html
+    Java REST API model (workspace): https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/WorkspaceItemRest.html
+    Java REST API model (workflow): https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/WorkflowItemRest.html
+    REST endpoint contract (workspace): https://github.com/DSpace/RestContract/blob/dspace-9.0/workspaceitems.md
+    REST endpoint contract (workflow): https://github.com/DSpace/RestContract/blob/dspace-9.0/workflowitems.md
+    """
 
     def __init__(self, api_resource):
         super().__init__(api_resource)
@@ -504,6 +541,13 @@ class InProgressSubmission(AddressableHALResource):
         return {**parent_dict, **dict}
 
 class WorkspaceItem(InProgressSubmission):
+    """
+    Extends InProgressSubmission to implement a WorkspaceItem.
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/WorkspaceItem.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/WorkspaceItemRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/workspaceitems.md
+    """
     type = 'workspaceitem'
 
     def __init__(self, api_resource):
@@ -514,9 +558,12 @@ class WorkspaceItem(InProgressSubmission):
 
 class EntityType(AddressableHALResource):
     """
-    Extends Addressable HAL Resource to model an entity type (aka item type)
-    used in entities and relationships. For example, Publication, Person, Project and Journal
-    are all common entity types used in DSpace 7+
+    Extends Addressable HAL Resource to model an entity type (aka item type) used in entities and relationships.
+    For example, Publication, Person, Project and Journal are all common entity types used in DSpace 7+
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/EntityType.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/EntityTypeRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/entitytypes.md
     """
     type = "entitytype"
 
@@ -529,7 +576,13 @@ class EntityType(AddressableHALResource):
 
 class RelationshipType(AddressableHALResource):
     """
-    TODO: RelationshipType
+    TODO! Not yet implemented
+    Extends Addressable HAL Resource to model a relationship type.
+    For example, isAuthorOfPublication.
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/RelationshipType.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/RelationshipTypeRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/relationshiptypes.md
     """
     type = "relationshiptype"
 
@@ -538,7 +591,11 @@ class RelationshipType(AddressableHALResource):
 
 class SearchResult(HALResource):
     """
-    Discover search result 
+    A 'Discover' search result, which can embed any kind of addressable object managed by DSpace.
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/discover/DiscoverResult.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/SearchResultRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/search-endpoint.md
     """
     type = "discover"
 
@@ -565,8 +622,10 @@ class SearchResult(HALResource):
 
 class ResourcePolicy(AddressableHALResource):
     """
-    A resource policy to control access and authorization to DSpace objects
-    See: https://github.com/DSpace/RestContract/blob/main/resourcepolicies.md
+    A resource policy to control access and authorization to DSpace objects.
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/authorize/ResourcePolicy.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/ResourcePolicyRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/resourcepolicies.md
     """
     type = "resourcepolicy"
 
