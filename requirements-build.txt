@@ -1,0 +1,3 @@
+# Requirements specific to building this module.
+# Not needed for normal operation.
+build~=1.4.0
