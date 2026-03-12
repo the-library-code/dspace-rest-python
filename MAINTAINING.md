@@ -6,6 +6,7 @@ These notes are for maintenance of the Git / PyPI source and releases / versions
 
 All the tasks we need to do, in order, when releasing a new version:
 
+1. **Install build tools** - `pip -r requirements-build.txt` should install everything you need and the build module itself will pull in the compile/build tools it needs
 1. **Check the main branch!** - we should have all the changes we want to include merged/picked and tested
 1. **Update CHANGELOG.md** - new versions go at the top of the file. See previous release blocks for formatting. I include a 'thanks' or 'reported by' attribution for PRs contributed or issues reported. The new version number is used for the heading and the (future) PyPI URL
 1. **Update pyproject.toml dependencies** - This should match requirements.txt dependencies, and also check the rest of the metadata in case that has changed
