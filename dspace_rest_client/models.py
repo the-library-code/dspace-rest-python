@@ -13,7 +13,8 @@ import json
 from typing import Any
 
 __all__ = ['DSpaceObject', 'HALResource', 'ExternalDataObject', 'SimpleDSpaceObject', 'Community',
-           'Collection', 'Item', 'Bundle', 'Bitstream', 'BitstreamFormat', 'User', 'Group']
+           'Collection', 'Item', 'Bundle', 'Bitstream', 'BitstreamFormat', 'User', 'Group',
+           'WorkspaceItem', 'InProgressSubmission', 'SearchResult', 'EntityType', 'ResourcePolicy']
 
 
 class HALResource:
@@ -40,6 +41,9 @@ class HALResource:
         return {'type': self.type}
 
 class AddressableHALResource(HALResource):
+    """
+    Any DSpace resource with an identifier ('id' in serialised JSON)
+    """
     def __init__(self, api_resource=None):
         super().__init__(api_resource)
         self.id = None
@@ -57,6 +61,10 @@ class ExternalDataObject(AddressableHALResource):
     Generic External Data Object as configured in DSpace's external data providers framework
     TODO: this is also known as externalSourceEntry? Should the class name be modified or aliased?
     Or should we draw a subtle distinction between the two even if they share the same model
+
+    Java API Model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/external/model/ExternalDataObject.html
+    Java REST API Model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/ExternalSourceEntryRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/external-authority-sources.md
     """
     type = "externalSourceEntry"
 
@@ -220,8 +228,6 @@ class SimpleDSpaceObject(DSpaceObject):
 
 class Item(SimpleDSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and functions for items.
-
     Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/Item.html
     Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/ItemRest.html
     REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/items.md
@@ -270,8 +276,6 @@ class Item(SimpleDSpaceObject):
 
 class Community(SimpleDSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and functions for communities.
-
     Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/Community.html
     Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/CommunityRest.html
     REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/communities.md
@@ -298,8 +302,6 @@ class Community(SimpleDSpaceObject):
 
 class Collection(SimpleDSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and functions for collections.
-
     Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/Collection.html
     Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/CollectionRest.html
     REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/collections.md
@@ -325,8 +327,6 @@ class Collection(SimpleDSpaceObject):
 
 class Bundle(DSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and functions for bundles.
-
     Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/Bundle.html
     Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/BundleRest.html
     REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/bundles.md
@@ -352,8 +352,6 @@ class Bundle(DSpaceObject):
 
 class Bitstream(DSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and functions for bitstreams.
-
     Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/Bitstream.html
     Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/BitstreamRest.html
     REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/bitstreams.md
