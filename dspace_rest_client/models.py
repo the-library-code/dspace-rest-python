@@ -10,54 +10,63 @@ when creating, updating, retrieving and deleting DSpace Objects.
 @author Kim Shepherd <kim@shepherd.nz>
 """
 import json
+from typing import Any
 
 __all__ = ['DSpaceObject', 'HALResource', 'ExternalDataObject', 'SimpleDSpaceObject', 'Community',
-           'Collection', 'Item', 'Bundle', 'Bitstream', 'BitstreamFormat', 'User', 'Group']
+           'Collection', 'Item', 'Bundle', 'Bitstream', 'BitstreamFormat', 'User', 'Group',
+           'WorkspaceItem', 'InProgressSubmission', 'SearchResult', 'EntityType', 'ResourcePolicy']
 
 
 class HALResource:
     """
     Base class to represent HAL+JSON API resources
     """
-    links = {}
     type = None
-    embedded = dict()
 
     def __init__(self, api_resource=None):
         """
         Default constructor
         @param api_resource: optional API resource (JSON) from a GET response or successful POST can populate instance
         """
+        self.links = {}
+        self.embedded = {} 
+
         if api_resource is not None:
-            if 'type' in api_resource:
-                self.type = api_resource['type']
-            if '_links' in api_resource:
-                self.links = api_resource['_links'].copy()
-            if '_embedded' in api_resource:
-                self.embedded = api_resource['_embedded'].copy()
-            else:
-                self.links = {'self': {'href': None}}
+            self.links = api_resource.get('_links', {}).copy()
+            self.embedded = api_resource.get('_embedded', {}).copy()
+        else:
+            self.links = {'self': {'href': None}}
+
+    def as_dict(self) -> dict[str, Any]:
+        return {'type': self.type}
 
 class AddressableHALResource(HALResource):
-    id = None
+    """
+    Any DSpace resource with an identifier ('id' in serialised JSON)
+    """
     def __init__(self, api_resource=None):
         super().__init__(api_resource)
+        self.id = None
+
         if api_resource is not None:
-            if 'id' in api_resource:
-                self.id = api_resource['id']
+            self.id = api_resource.get('id')
 
     def as_dict(self):
-        return {'id': self.id}
+        parent_dict = super().as_dict()
+        this_dict = {'id': self.id}
+        return {**parent_dict, **this_dict}
 
-class ExternalDataObject(HALResource):
+class ExternalDataObject(AddressableHALResource):
     """
     Generic External Data Object as configured in DSpace's external data providers framework
+    TODO: this is also known as externalSourceEntry? Should the class name be modified or aliased?
+    Or should we draw a subtle distinction between the two even if they share the same model
+
+    Java API Model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/external/model/ExternalDataObject.html
+    Java REST API Model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/ExternalSourceEntryRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/external-authority-sources.md
     """
-    id = None
-    display = None
-    value = None
-    externalSource = None
-    metadata = {}
+    type = "externalSourceEntry"
 
     def __init__(self, api_resource=None):
         """
@@ -65,20 +74,16 @@ class ExternalDataObject(HALResource):
         @param api_resource: optional API resource (JSON) from a GET response or successful POST can populate instance
         """
         super().__init__(api_resource)
-
+        self.display = None
+        self.value = None
+        self.externalSource = None
         self.metadata = {}
 
         if api_resource is not None:
-            if 'id' in api_resource:
-                self.id = api_resource['id']
-            if 'display' in api_resource:
-                self.display = api_resource['display']
-            if 'value' in api_resource:
-                self.value = api_resource['value']
-            if 'externalSource' in api_resource:
-                self.externalSource = api_resource['externalSource']
-            if 'metadata' in api_resource:
-                self.metadata = api_resource['metadata'].copy()
+            self.display = api_resource.get('display')
+            self.value = api_resource.get('value')
+            self.externalSource = api_resource.get('externalSource')
+            self.metadata = api_resource.get('metadata').copy()
 
     def get_metadata_values(self, field):
         """
@@ -86,26 +91,28 @@ class ExternalDataObject(HALResource):
         @param field: DSpace field, eg. dc.creator
         @return: list of strings
         """
-        values = []
-        if field in self.metadata:
-            values = self.metadata[field]
-        return values
+        return self.metadata.get(field, [])
 
+    def as_dict(self):
+        parent_dict = super().as_dict()
+        edo_dict = {
+            'display': self.display,
+            'value': self.value,
+            'externalSource': self.externalSource,
+            'metadata': self.metadata,
+        }
+        return {**parent_dict, **edo_dict}
 
-class DSpaceObject(HALResource):
+class DSpaceObject(AddressableHALResource):
     """
     Base class to represent DSpaceObject API resources
     The variables here are present in an _embedded response and the ones required for POST / PUT / PATCH
     operations are included in the dict returned by asDict(). Implements toJSON() as well.
     This class can be used on its own but is generally expected to be extended by other types: Item, Bitstream, etc.
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/DSpaceObject.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/DSpaceObjectRest.html
     """
-    uuid = None
-    name = None
-    handle = None
-    metadata = {}
-    lastModified = None
-    type = None
-    parent = None
 
     def __init__(self, api_resource=None, dso=None):
         """
@@ -113,31 +120,35 @@ class DSpaceObject(HALResource):
         @param api_resource: optional API resource (JSON) from a GET response or successful POST can populate instance
         """
         super().__init__(api_resource)
-        self.type = None
+        self.uuid = None
+        self.name = None
+        self.handle = None
+        self.lastModified = None
+        self.parent = None
         self.metadata = {}
 
         if dso is not None:
             api_resource = dso.as_dict()
             self.links = dso.links.copy()
+
         if api_resource is not None:
-            if 'id' in api_resource:
-                self.id = api_resource['id']
-            if 'uuid' in api_resource:
-                self.uuid = api_resource['uuid']
-            if 'type' in api_resource:
-                self.type = api_resource['type']
-            if 'name' in api_resource:
-                self.name = api_resource['name']
-            if 'handle' in api_resource:
-                self.handle = api_resource['handle']
-            if 'metadata' in api_resource:
-                self.metadata = api_resource['metadata'].copy()
-            if 'lastModified' in api_resource:
-                self.lastModified = api_resource['lastModified']
+            self.id = api_resource.get('id')
+            self.uuid = api_resource.get('uuid')
+            self.name = api_resource.get('name')
+            self.handle = api_resource.get('handle')
+            self.metadata = api_resource.get('metadata', {}).copy()
+            self.lastModified = api_resource.get('lastModified')
             # Python interprets _ prefix as private so for now, renaming this and handling it separately
             # alternatively - each item could implement getters, or a public method to return links
-            if '_links' in api_resource:
-                self.links = api_resource['_links'].copy()
+            self.links = api_resource.get('_links', {}).copy()
+
+    def get_metadata_values(self, field):
+        """
+        Return metadata values as simple list of strings
+        @param field: DSpace field, eg. dc.creator
+        @return: list of strings
+        """
+        return self.metadata.get(field, [])
 
     def add_metadata(self, field, value, language=None, authority=None, confidence=-1, place=None):
         """
@@ -155,17 +166,14 @@ class DSpaceObject(HALResource):
         """
         if field is None or value is None:
             return
-        if field in self.metadata:
-            values = self.metadata[field]
-            # Ensure we don't accidentally duplicate place value. If this place already exists, the user
-            # should use a patch operation or we should allow another way to re-order / re-calc place?
-            # For now, we'll just set place to none if it matches an existing place
-            for v in values:
-                if v['place'] == place:
-                    place = None
-                    break
-        else:
-            values = []
+        values = self.metadata.get(field, [])
+        # Ensure we don't accidentally duplicate place value. If this place already exists, the user
+        # should use a patch operation or we should allow another way to re-order / re-calc place?
+        # For now, we'll just set place to none if it matches an existing place
+        for v in values:
+            if v['place'] == place:
+                place = None
+                break
         values.append({"value": value, "language": language,
                        "authority": authority, "confidence": confidence, "place": place})
         self.metadata[field] = values
@@ -191,14 +199,15 @@ class DSpaceObject(HALResource):
         Return custom dict of this DSpaceObject with specific attributes included (no _links, etc.)
         @return: dict of this DSpaceObject for API use
         """
-        return {
+        parent_dict = super().as_dict()
+        dso_dict = {
             'uuid': self.uuid,
             'name': self.name,
             'handle': self.handle,
             'metadata': self.metadata,
-            'lastModified': self.lastModified,
-            'type': self.type,
+            'lastModified': self.lastModified
         }
+        return {**parent_dict, **dso_dict}
 
     def to_json(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=None)
@@ -211,24 +220,29 @@ class SimpleDSpaceObject(DSpaceObject):
     """
     Objects that share similar simple API methods eg. PUT update for full metadata replacement, can have handles, etc.
     By default this is Item, Community, Collection classes
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/DSpaceObject.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/DSpaceObjectRest.html
     """
 
 
 class Item(SimpleDSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and functions for items
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/Item.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/ItemRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/items.md
     """
-    type = 'item'
-    inArchive = False
-    discoverable = False
-    withdrawn = False
-    metadata = {}
+    type = "item"
 
     def __init__(self, api_resource=None, dso=None):
         """
         Default constructor. Call DSpaceObject init then set item-specific attributes
         @param api_resource: API result object to use as initial data
         """
+        self.inArchive = False
+        self.discoverable = False
+        self.withdrawn = False
+        self.metadata = {}
         if dso is not None:
             api_resource = dso.as_dict()
             super().__init__(dso=dso)
@@ -236,21 +250,11 @@ class Item(SimpleDSpaceObject):
             super().__init__(api_resource)
 
         if api_resource is not None:
-            self.type = 'item'
-            self.inArchive = api_resource['inArchive'] if 'inArchive' in api_resource else True
-            self.discoverable = api_resource['discoverable'] if 'discoverable' in api_resource else False
-            self.withdrawn = api_resource['withdrawn'] if 'withdrawn' in api_resource else False
+            self.inArchive = api_resource.get('inArchive', True)
+            self.discoverable = api_resource.get('discoverable', False)
+            self.withdrawn = api_resource.get('withdrawn', False)
 
-    def get_metadata_values(self, field):
-        """
-        Return metadata values as simple list of strings
-        @param field: DSpace field, eg. dc.creator
-        @return: list of strings
-        """
-        values = []
-        if field in self.metadata:
-            values = self.metadata[field]
-        return values
+
 
     def as_dict(self):
         """
@@ -272,7 +276,9 @@ class Item(SimpleDSpaceObject):
 
 class Community(SimpleDSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and functions for communities
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/Community.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/CommunityRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/communities.md
     """
     type = 'community'
 
@@ -282,7 +288,6 @@ class Community(SimpleDSpaceObject):
         @param api_resource: API result object to use as initial data
         """
         super().__init__(api_resource)
-        self.type = 'community'
 
     def as_dict(self):
         """
@@ -297,9 +302,11 @@ class Community(SimpleDSpaceObject):
 
 class Collection(SimpleDSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and functions for collections
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/Collection.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/CollectionRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/collections.md
     """
-    type = 'collection'
+    type = "collection"
 
     def __init__(self, api_resource=None):
         """
@@ -307,23 +314,24 @@ class Collection(SimpleDSpaceObject):
         @param api_resource: API result object to use as initial data
         """
         super().__init__(api_resource)
-        self.type = 'collection'
 
     def as_dict(self):
-        dso_dict = super().as_dict()
         """
         Return a dict representation of this Collection, based on super with collection-specific attributes added
         @return: dict of Item for API use
         """
+        dso_dict = super().as_dict()
         collection_dict = {}
         return {**dso_dict, **collection_dict}
 
 
 class Bundle(DSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and functions for bundles
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/Bundle.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/BundleRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/bundles.md
     """
-    type = 'bundle'
+    type = "bundle"
 
     def __init__(self, api_resource=None):
         """
@@ -331,7 +339,6 @@ class Bundle(DSpaceObject):
         @param api_resource: API result object to use as initial data
         """
         super().__init__(api_resource)
-        self.type = 'bundle'
 
     def as_dict(self):
         """
@@ -345,17 +352,11 @@ class Bundle(DSpaceObject):
 
 class Bitstream(DSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and functions for bundles
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/Bitstream.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/BitstreamRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/bitstreams.md
     """
-    type = 'bitstream'
-    # Bitstream has a few extra fields specific to file storage
-    bundleName = None
-    sizeBytes = None
-    checkSum = {
-        'checkSumAlgorithm': 'MD5',
-        'value': None
-    }
-    sequenceId = None
+    type = "bitstream"
 
     def __init__(self, api_resource=None):
         """
@@ -363,15 +364,20 @@ class Bitstream(DSpaceObject):
         @param api_resource: API result object to use as initial data
         """
         super().__init__(api_resource)
-        self.type = 'bitstream'
-        if 'bundleName' in api_resource:
-            self.bundleName = api_resource['bundleName']
-        if 'sizeBytes' in api_resource:
-            self.sizeBytes = api_resource['sizeBytes']
-        if 'checkSum' in api_resource:
-            self.checkSum = api_resource['checkSum']
-        if 'sequenceId' in api_resource:
-            self.sequenceId = api_resource['sequenceId']
+        # Bitstream has a few extra fields specific to file storage
+        self.bundleName = None
+        self.sizeBytes = None
+        self.checkSum = {
+            'checkSumAlgorithm': 'MD5',
+            'value': None
+        }
+        self.sequenceId = None
+
+        if api_resource is not None:
+            self.bundleName = api_resource.get('bundleName')
+            self.sizeBytes = api_resource.get('sizeBytes')
+            self.checkSum = api_resource.get('checkSum', self.checkSum)
+            self.sequenceId = api_resource.get('sequenceId')
 
     def as_dict(self):
         """
@@ -385,42 +391,30 @@ class Bitstream(DSpaceObject):
 
 class BitstreamFormat(AddressableHALResource):
     """
-    Bitstream format: https://github.com/DSpace/RestContract/blob/main/bitstreamformats.md
-    example:
-        {
-          "shortDescription": "XML",
-          "description": "Extensible Markup Language",
-          "mimetype": "text/xml",
-          "supportLevel": "KNOWN",
-          "internal": false,
-          "extensions": [
-                  "xml"
-          ],
-          "type": "bitstreamformat"
-        }
+    Represents format / MIME metadata for a bitstream.
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/BitstreamFormat.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/BitstreamFormatRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/bitstreamformats.md
     """
-    shortDescription = None
-    description = None
-    mimetype = None
-    supportLevel = None
-    internal = False
-    extensions = []
-    type = 'bitstreamformat'
+    type = "bitstreamformat"
 
     def __init__(self, api_resource):
         super(BitstreamFormat, self).__init__(api_resource)
-        if 'shortDescription' in api_resource:
-            self.shortDescription = api_resource['shortDescription']
-        if 'description' in api_resource:
-            self.description = api_resource['description']
-        if 'mimetype' in api_resource:
-            self.mimetype = api_resource['mimetype']
-        if 'supportLevel' in api_resource:
-            self.supportLevel = api_resource['supportLevel']
-        if 'internal' in api_resource:
-            self.internal = api_resource['internal']
-        if 'extensions' in api_resource:
-            self.extensions = api_resource['extensions'].copy()
+        self.shortDescription = None
+        self.description = None
+        self.mimetype = None
+        self.supportLevel = None
+        self.internal = False
+        self.extensions = []
+
+        if api_resource is not None:
+            self.shortDescription = api_resource.get('shortDescription')
+            self.description = api_resource.get('description')
+            self.mimetype = api_resource.get('mimetype')
+            self.supportLevel = api_resource.get('supportLevel')
+            self.internal = api_resource.get('internal')
+            self.extensions = api_resource.get('extensions', {}).copy()
 
     def as_dict(self):
         parent_dict = super(BitstreamFormat, self).as_dict()
@@ -430,18 +424,19 @@ class BitstreamFormat(AddressableHALResource):
             'mimetype': self.mimetype,
             'supportLevel': self.supportLevel,
             'internal': self.internal,
-            'extensions': self.extensions,
-            'type': self.type
+            'extensions': self.extensions
         }
         return {**parent_dict, **dict}
 
 class Group(DSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and methods for groups (aka. EPersonGroups)
+    Extends DSpaceObject to implement specific attributes and methods for groups (aka. EPersonGroups).
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/eperson/Group.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/GroupRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/epersongroups.md
     """
     type = 'group'
-    name = None
-    permanent = False
 
     def __init__(self, api_resource=None):
         """
@@ -449,11 +444,12 @@ class Group(DSpaceObject):
         @param api_resource: API result object to use as initial data
         """
         super().__init__(api_resource)
-        self.type = 'group'
-        if 'name' in api_resource:
-            self.name = api_resource['name']
-        if 'permanent' in api_resource:
-            self.permanent = api_resource['permanent']
+        self.name = None
+        self.permanent = False
+
+        if api_resource is not None:
+            self.name = api_resource.get('name')
+            self.permanent = api_resource.get('permanent')
 
     def as_dict(self):
         """
@@ -467,16 +463,15 @@ class Group(DSpaceObject):
 
 class User(SimpleDSpaceObject):
     """
-    Extends DSpaceObject to implement specific attributes and methods for users (aka. EPersons)
+    Extends DSpaceObject to implement specific attributes and methods for users (aka. EPersons).
+    This is one class that is deliberately named differently to the base implementation, out of
+    protest ;) But perhaps it needs to be aliased or aligned with DSpace API for usability...
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/eperson/EPerson.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/EPersonRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/epersons.md
     """
-    type = 'user'
-    name = None
-    netid = None
-    lastActive = None
-    canLogIn = False
-    email = None
-    requireCertificate = False
-    selfRegistered = False
+    type = "eperson"
 
     def __init__(self, api_resource=None):
         """
@@ -484,21 +479,22 @@ class User(SimpleDSpaceObject):
         @param api_resource: API result object to use as initial data
         """
         super().__init__(api_resource)
-        self.type = 'user'
-        if 'name' in api_resource:
-            self.name = api_resource['name']
-        if 'netid' in api_resource:
-            self.netid = api_resource['netid']
-        if 'lastActive' in api_resource:
-            self.lastActive = api_resource['lastActive']
-        if 'canLogIn' in api_resource:
-            self.canLogIn = api_resource['canLogIn']
-        if 'email' in api_resource:
-            self.email = api_resource['email']
-        if 'requireCertificate' in api_resource:
-            self.requireCertificate = api_resource['requireCertificate']
-        if 'selfRegistered' in api_resource:
-            self.selfRegistered = api_resource['selfRegistered']
+        self.name = None
+        self.netid = None
+        self.lastActive = None
+        self.canLogIn = False
+        self.email = None
+        self.requireCertificate = False
+        self.selfRegistered = False
+
+        if api_resource is not None:
+            self.name = api_resource.get('name')
+            self.netid = api_resource.get('netid')
+            self.lastActive = api_resource.get('lastActive')
+            self.canLogIn = api_resource.get('canLogIn')
+            self.email = api_resource.get('email')
+            self.requireCertificate = api_resource.get('requireCertificate')
+            self.selfRegistered = api_resource.get('selfRegistered')
 
     def as_dict(self):
         """
@@ -512,21 +508,26 @@ class User(SimpleDSpaceObject):
         return {**dso_dict, **user_dict}
 
 class InProgressSubmission(AddressableHALResource):
-    lastModified = None
-    step = None
-    sections = {}
-    type = None
+    """
+    Extends AddressableHALResource to implement an 'in-progress' item (i.e. workspace or workflow item).
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/InProgressSubmission.html
+    Java REST API model (workspace): https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/WorkspaceItemRest.html
+    Java REST API model (workflow): https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/WorkflowItemRest.html
+    REST endpoint contract (workspace): https://github.com/DSpace/RestContract/blob/dspace-9.0/workspaceitems.md
+    REST endpoint contract (workflow): https://github.com/DSpace/RestContract/blob/dspace-9.0/workflowitems.md
+    """
 
     def __init__(self, api_resource):
         super().__init__(api_resource)
-        if 'lastModified' in api_resource:
-            self.lastModified = api_resource['lastModified']
-        if 'step' in api_resource:
-            self.step = api_resource['lastModified']
-        if 'sections' in api_resource:
-            self.sections = api_resource['sections'].copy()
-        if 'type' in api_resource:
-            self.lastModified = api_resource['lastModified']
+        self.lastModified = None
+        self.step = None
+        self.sections = {}
+
+        if api_resource is not None:
+            self.lastModified = api_resource.get('lastModified')
+            self.step = api_resource.get('step')
+            self.sections = api_resource.get('sections', {}).copy()
 
     def as_dict(self):
         parent_dict = super().as_dict()
@@ -534,11 +535,18 @@ class InProgressSubmission(AddressableHALResource):
             'lastModified': self.lastModified,
             'step': self.step,
             'sections': self.sections,
-            'type': self.type
         }
         return {**parent_dict, **dict}
 
 class WorkspaceItem(InProgressSubmission):
+    """
+    Extends InProgressSubmission to implement a WorkspaceItem.
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/WorkspaceItem.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/WorkspaceItemRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/workspaceitems.md
+    """
+    type = 'workspaceitem'
 
     def __init__(self, api_resource):
         super().__init__(api_resource)
@@ -548,132 +556,98 @@ class WorkspaceItem(InProgressSubmission):
 
 class EntityType(AddressableHALResource):
     """
-    Extends Addressable HAL Resource to model an entity type (aka item type)
-    used in entities and relationships. For example, Publication, Person, Project and Journal
-    are all common entity types used in DSpace 7+
+    Extends Addressable HAL Resource to model an entity type (aka item type) used in entities and relationships.
+    For example, Publication, Person, Project and Journal are all common entity types used in DSpace 7+
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/EntityType.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/EntityTypeRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/entitytypes.md
     """
+    type = "entitytype"
+
     def __init__(self, api_resource):
         super().__init__(api_resource)
-        if 'label' in api_resource:
-            self.label = api_resource['label']
-        if 'type' in api_resource:
-            self.label = api_resource['type']
+        self.label = None
+
+        if api_resource is not None:
+            self.label = api_resource.get('label')
 
 class RelationshipType(AddressableHALResource):
     """
-    TODO: RelationshipType
+    TODO! Not yet implemented
+    Extends Addressable HAL Resource to model a relationship type.
+    For example, isAuthorOfPublication.
+
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/content/RelationshipType.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/RelationshipTypeRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/relationshiptypes.md
     """
+    type = "relationshiptype"
+
     def __init__(self, api_resource):
         super().__init__(api_resource)
 
 class SearchResult(HALResource):
     """
-    {
-      "query":"my query",
-      "scope":"9076bd16-e69a-48d6-9e41-0238cb40d863",
-      "appliedFilters": [
-          {
-            "filter" : "title",
-            "operator" : "notcontains",
-            "value" : "abcd",
-            "label" : "abcd"
-          },
-          {
-            "filter" : "author",
-            "operator" : "authority",
-            "value" : "1234",
-            "label" : "Smith, Donald"
-          }
-      ],
-      "sort" : {
-        "by" : "dc.date.issued",
-        "order" : "asc"
-      },
-      "_embedded" : {
-        "searchResults": {
-          "_embedded": {
-            "objects" : [...],
-            },
+    A 'Discover' search result, which can embed any kind of addressable object managed by DSpace.
 
-          "_links": {
-            "first": {
-              "href": "/api/discover/search/objects?query=my+query&scope=9076bd16-e69a-48d6-9e41-0238cb40d863&f.title=abcd,notcontains&f.author=1234,authority&page=0&size=5"
-            },
-            "self": {
-              "href": "/api/discover/search/objects?query=my+query&scope=9076bd16-e69a-48d6-9e41-0238cb40d863&f.title=abcd,notcontains&f.author=1234,authority&page=0&size=5"
-            },
-            "next": {
-              "href": "/api/discover/search/objects?query=my+query&scope=9076bd16-e69a-48d6-9e41-0238cb40d863&f.title=abcd,notcontains&f.author=1234,authority&page=1&size=5"
-            },
-            "last": {
-              "href": "/api/discover/search/objects?query=my+query&scope=9076bd16-e69a-48d6-9e41-0238cb40d863&f.title=abcd,notcontains&f.author=1234,authority&page=2&size=5"
-            }
-          },
-          "page": {
-            "number": 0,
-            "size": 20,
-            "totalElements": 12,
-            "totalPages": 3
-          }
-        }, "facets"... (TODO)
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/discover/DiscoverResult.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/SearchResultRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/search-endpoint.md
     """
-    query = None
-    scope = None
-    appliedFilters = [] 
-    type = None
+    type = "discover"
 
     def __init__(self, api_resource):
         super().__init__(api_resource)
-        if 'lastModified' in api_resource:
-            self.lastModified = api_resource['lastModified']
-        if 'step' in api_resource:
-            self.step = api_resource['step']
-        if 'sections' in api_resource:
-            self.sections = api_resource['sections'].copy()
-        if 'type' in api_resource and self.type is not None:
-            self.type = api_resource['type']
+        self.query = None
+        self.scope = None
+        self.appliedFilters = [] 
+
+        if api_resource is not None:
+            self.query = api_resource.get('query')
+            self.scope = api_resource.get('scope')
+            self.appliedFilters = api_resource.get('appliedFilters', []).copy()
 
     def as_dict(self):
         parent_dict = super().as_dict()
-        dict = {
-            'lastModified': self.lastModified,
-            'step': self.step,
-            'sections': self.sections,
-            'type': self.type
+        this_dict = {
+            'query': self.query,
+            'scope': self.scope,
+            'appliedFilters': self.appliedFilters
         }
-        return {**parent_dict, **dict}
+
+        return {**parent_dict, **this_dict}
 
 class ResourcePolicy(AddressableHALResource):
     """
-    A resource policy to control access and authorization to DSpace objects
-    See: https://github.com/DSpace/RestContract/blob/main/resourcepolicies.md
+    A resource policy to control access and authorization to DSpace objects.
+    Java API model: https://javadoc.io/doc/org.dspace/dspace-api/9.0/org/dspace/authorize/ResourcePolicy.html
+    Java REST API model: https://javadoc.io/doc/org.dspace/dspace-server-webapp/9.0/org/dspace/app/rest/model/ResourcePolicyRest.html
+    REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/resourcepolicies.md
     """
-    type = 'resourcepolicy'
-    name = None
-    description = None
-    policyType = None
-    action = None
-    startDate = None
-    endDate = None
+    type = "resourcepolicy"
 
     def __init__(self, api_resource):
         super().__init__(api_resource)
-        if 'name' in api_resource:
-            self.name = api_resource['name']
-        if 'description' in api_resource:
-            self.description = api_resource['description']
-        if 'policyType' in api_resource:
-            self.policyType = api_resource['policyType']
-        if 'action' in api_resource:
-            self.action = api_resource['action']
-        if 'startDate' in api_resource:
-            self.startDate = api_resource['startDate']
-        if 'endDate' in api_resource:
-            self.endDate = api_resource['endDate']
+        self.name = None
+        self.description = None
+        self.policyType = None
+        self.action = None
+        self.startDate = None
+        self.endDate = None
+
+        if api_resource is not None:
+            self.name = api_resource.get('name')
+            self.description = api_resource.get('description')
+            self.policyType = api_resource.get('policyType')
+            self.action = api_resource.get('action')
+            self.startDate = api_resource.get('startDate')
+            self.endDate = api_resource.get('endDate')
 
     def as_dict(self):
         hal_dict = super().as_dict()
-        rp_dict = {'name': self.name, 'description': self.description, 'policyType': self.policyType, 'action': self.action, 'startDate': self.startDate, 'endDate': self.endDate}
+        rp_dict = {'name': self.name, 'description': self.description, 'policyType': self.policyType,
+                   'action': self.action, 'startDate': self.startDate, 'endDate': self.endDate}
         return {**hal_dict, **rp_dict}
 
 
