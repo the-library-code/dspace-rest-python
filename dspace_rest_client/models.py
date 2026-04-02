@@ -13,7 +13,7 @@ import json
 from typing import Any
 
 __all__ = ['DSpaceObject', 'HALResource', 'ExternalDataObject', 'SimpleDSpaceObject', 'Community',
-           'Collection', 'Item', 'Bundle', 'Bitstream', 'BitstreamFormat', 'User', 'Group',
+           'Collection', 'Item', 'Version', 'Bundle', 'Bitstream', 'BitstreamFormat', 'User', 'Group',
            'WorkspaceItem', 'InProgressSubmission', 'SearchResult', 'EntityType', 'ResourcePolicy']
 
 
@@ -427,6 +427,40 @@ class BitstreamFormat(AddressableHALResource):
             'extensions': self.extensions
         }
         return {**parent_dict, **dict}
+
+
+class Version(AddressableHALResource):
+    """
+    Version of a DSpace item
+    Links include versionhistory, item
+    """
+    type = 'version'
+
+    def __init__(self, api_resource=None):
+        super().__init__(api_resource)
+        self.version = None
+        self.created = None
+        self.summary = None
+        self.submitterName = None
+
+        if api_resource is not None:
+            self.version = api_resource.get('version')
+            self.created = api_resource.get('created')
+            self.summary = api_resource.get('summary')
+            self.submitterName = api_resource.get('submitterName')
+
+    def as_dict(self):
+        """
+        Return a dict representation of this Group, based on super with group-specific attributes added
+        @return: dict of Group for API use
+        """
+        parent_dict = super().as_dict()
+        this_dict = {'version': self.version,
+                     'created': self.created,
+                     'summary': self.summary,
+                     'submitterName': self.submitterName}
+        return {**parent_dict, **this_dict}
+        
 
 class Group(DSpaceObject):
     """
