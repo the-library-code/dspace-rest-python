@@ -1514,7 +1514,7 @@ class DSpaceClient:
 
     def get_short_lived_token(self):
         """
-        Get a short-lived (2 min) token in order to request restricted bitstream downloads
+        Get a short-lived (2 sec) token in order to request restricted bitstream downloads
         @return: short lived Authorization token
         """
         if not self.session:
