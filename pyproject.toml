@@ -9,7 +9,7 @@ description = "A DSpace REST API client library"
 readme = "README.md"
 license = {text = "BSD-3-Clause"}
 authors = [
-    {name = "Kim Shepherd", email = "kim@the-library-code.de"}
+    {name = "Kim Shepherd", email = "kim@shepherd.nz"}
 ]
 classifiers = [
     "Programming Language :: Python :: 3.8",

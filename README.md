@@ -35,6 +35,19 @@ Some environment variables can be used when setting up the REST client connectio
 `DSPACE_API_ENDPOINT` is the base URL of your endpoint eg. http://localhost:8080/server
 `DSPACE_API_USERNAME` and `DSPACE_API_PASSWORD` are credentials to use for authentication.
 
+### Personal API token authentication (DSpace-CRIS only)
+
+DSpace-CRIS allows API tokens for users to be created in their EPerson profile page. You can use this token to authenticate instead of plain username / password. The functionality works as follows:
+
+1. If an environment variable `PERSONAL_API_TOKEN_FILE` is set, treat it as a file path to a token and read its contents.
+2. If a file named `.dspace-personal-api-token.secret` exists in the current working directory of the script, try to read it
+3. If a file named `.dspace-personal-api-token.secret` exists in the current user's home directory, try to read it
+4. If no token is found, fall back to standard password auth
+
+If a token is found, it will be set as the Authorization Bearer header instead of requesting JWT bearer tokens.
+
+### Usage examples
+
 See the `example.py` script for an example of community, collection, item, bundle and bitstream creation.
 Just set the credentials and base URL at the top of the script to match your test system, or if you've set environment
 variables, remove the arguments from the DSpaceClient() instantiation and the environment variables will be used as

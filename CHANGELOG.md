@@ -1,5 +1,20 @@
 # Changelog
 
+### 0.1.18
+
+Date: 2026-05-20
+
+PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.18/
+
+**Changes**
+
+1. Various client and model code cleanup (should not affect usage in scripts): https://github.com/the-library-code/dspace-rest-python/pull/63
+2. Bump dependency versions and remove setuptools from requirements: https://github.com/the-library-code/dspace-rest-python/pull/64
+3. Support personal API token for DSpace-CRIS authentication: https://github.com/the-library-code/dspace-rest-python/pull/65
+4. Add some very simple "start workflow with item" functionality: https://github.com/the-library-code/dspace-rest-python/pull/68
+5. Fix javadoc in `get_short_lived_token` (thanks @alanorth): https://github.com/the-library-code/dspace-rest-python/pull/69
+6. Add `get_items_iter` and fix `do_paginate` to preserve non-page parameters: https://github.com/the-library-code/dspace-rest-python/pull/70
+
 ### 0.1.17
 
 Date: 2026-03-03
