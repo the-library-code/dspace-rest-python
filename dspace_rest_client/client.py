@@ -153,7 +153,6 @@ class DSpaceClient:
         @return: A decorator that, when applied to a method, follows pagination and yields
         each resource
         """
-
         def decorator(fun):
             @functools.wraps(fun)
             def decorated(self, *args, **kwargs):
@@ -167,9 +166,9 @@ class DSpaceClient:
 
                         if "next" in r_json.get("_links", {}):
                             url = r_json["_links"]["next"]["href"]
-                            # assume the ‘next’ link contains all the
-                            # params needed for the correct next page:
-                            params = {}
+                            # Keep non-page embed params
+                            params = {k: v for k, v in params.items() 
+                                      if k not in ("page", "size")}
                         else:
                             url = None
 
@@ -1232,8 +1231,10 @@ class DSpaceClient:
 
     def get_items(self, embeds=None):
         """
-        Get all archived items for a logged-in administrator. Admin only! Usually you will want to
-        use search or browse methods instead of this method
+        Get all archived items for a logged-in administrator.
+        Ignores all discoverability/withdrawn/status, just looks for
+        all item objects. To further filter, either use search methods
+        or filter after retrieving.
         @param embeds:  Optional list of resources to embed in response JSON
         @return: A list of items, or an error
         """
@@ -1254,6 +1255,23 @@ class DSpaceClient:
         # Return list (populated or empty)
         return items
 
+    @paginated("items", Item)
+    def get_items_iter(self, do_paginate, sort=None, embeds=None):
+        """
+        Get all archived items for a logged-in administrator. 
+        Ignores all discoverability/withdrawn/status, just looks for
+        all item objects. To further filter, either use search methods
+        or filter after retrieving.
+        @param embeds:  Optional list of resources to embed in response JSON
+        @return: A generator of items to iterate
+        """
+        url = f"{self.API_ENDPOINT}/core/items"
+        params = parse_params(embeds=embeds)
+        if sort is not None:
+            params["sort"] = sort
+
+        return do_paginate(url, params)
+ 
     def create_item(self, parent, item, embeds=None):
         """
         Create an item beneath the given parent collection
