@@ -34,6 +34,8 @@ from .models import (
     Community,
     Collection,
     Item,
+    Version,
+    WorkspaceItem,
     Bundle,
     Bitstream,
     User,
@@ -1294,7 +1296,7 @@ class DSpaceClient:
 
         if response.status_code == 201:
             # 201 Created - Success
-            new_version = parse_json(response)
+            new_version = Version(api_resource=parse_json(response))
             logging.info("Created new version for item %s", item_uuid)
             return new_version
         else:
@@ -1485,6 +1487,26 @@ class DSpaceClient:
             )
         )
 
+    def get_workspace_item(self, id=None, item_uuid=None):
+        """
+        Get workspace item for a given integer ID
+        or by passing the wrapped DSpace Item UUID (useful if you have
+        an item reference from e.g. a new version, but not the workspace
+        item ID)
+        """
+        params = {}
+        url = None
+        if isinstance(id, int):
+            url = f"{self.API_ENDPOINT}/submission/workspaceitems/{id}"
+        elif item_uuid is not None:
+            url = f"{self.API_ENDPOINT}/submission/workspaceitems/search/item"
+            params = {"uuid": item_uuid}
+
+        res = parse_json(self.api_get(url, params=params))
+        if res is not None:
+            # TODO: WorkspaceItem is just a stub right now
+            return WorkspaceItem(res)
+
     def start_workflow(self, workspace_item):
         """
         Start workflow for a given workspace item (provided in url-list body)
@@ -1493,6 +1515,7 @@ class DSpaceClient:
         """
         url = f"{self.API_ENDPOINT}/workflow/workflowitems"
         res = parse_json(self.api_post_uri(url, params=None, uri_list=workspace_item))
+        return res
 
     def update_token(self, r):
         """
