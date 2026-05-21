@@ -1,10 +1,26 @@
 # Changelog
 
+### 0.1.19
+
+Date: 2026-05-21
+
+PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.19/
+
+This is a quick bugfix release to resolve an issue introduced in 0.1.18.
+
+**Changes**
+
+1. Preserve *only* the embed parameters in do_paginate, let the "next" link handle the rest: https://github.com/the-library-code/dspace-rest-python/pull/71
+
 ### 0.1.18
 
 Date: 2026-05-20
 
 PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.18/
+
+**Warning**
+
+Change #6 actually introduced some unwanted side-effects when paging through search results, so this release is buggy. Use 0.1.19 instead.
 
 **Changes**
 
