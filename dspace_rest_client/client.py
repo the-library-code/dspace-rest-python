@@ -158,6 +158,7 @@ class DSpaceClient:
             def decorated(self, *args, **kwargs):
                 def do_paginate(url, params):
                     params["size"] = self.ITER_PAGE_SIZE
+                    embed_params = {k: v for k, v in params.items() if k == "embed"}
 
                     while url is not None:
                         r_json = embedding(self.fetch_resource(url, params))
@@ -166,9 +167,9 @@ class DSpaceClient:
 
                         if "next" in r_json.get("_links", {}):
                             url = r_json["_links"]["next"]["href"]
-                            # Keep non-page embed params
-                            params = {k: v for k, v in params.items() 
-                                      if k not in ("page", "size")}
+                            # Keep only embed params, trust next link
+                            # to preserve the rest
+                            params = embed_params
                         else:
                             url = None
 
