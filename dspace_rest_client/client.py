@@ -1667,3 +1667,53 @@ class DSpaceClient:
             return ResourcePolicy(api_resource=new_policy)
         else:
             logging.error("create operation failed: %s: %s (%s)", r.status_code, r.text, url)
+
+    def create_relationship(self, relationship_type, left_uuid, right_uuid, leftward_value=None):
+        """
+        Create a relationship between two items. Requires a valid relationship type.
+        @param relationship_type: Relationship type ID (integer)
+        @param left_uuid: UUID of the left-hand item
+        @param right_uuid: UUID of the right-hand item
+        @param leftward_value: optional name variant for the leftward relationship
+        @return: Relationship object constructed from the API response
+        """
+        if left_uuid is None or right_uuid is None:
+            logging.error("Must provide UUIDs for both left and right items")
+            return None
+
+        url = f"{self.API_ENDPOINT}/core/relationships"
+        params = parse_params({"relationshipType": relationship_type}, embeds=None)
+        if leftward_value is not None:
+            params["leftwardValue"] = leftward_value
+        uri_list = f"{left_uuid}\n{right_uuid}"
+        res = parse_json(
+            self.api_post_uri(url, params={"relationshipType": relationship_type, "leftwardValue": leftward_value},
+                              uri_list=uri_list)
+        )
+        return res
+
+    def get_relationships_for_item(self, item_uuid, relationship_type, relationship_label, related_items):
+        """
+        Get a list of relationships for a given item
+        @param item_uuid: UUID of the (focus) item
+        @param relationship_type: relationship type ID (integer)
+        @param relationship_label: label of the (focus) item's relationship (e.g. isPublicationOfAuthor)
+        @param related_items: list of UUIDs of the related items
+        @return: list of Relationship objects
+        """
+        if item_uuid is None:
+            logging.error("Must provide UUID for item")
+            return None
+        if related_items is None or len(related_items) == 0:
+            logging.error("Must provide a non-empty list of related items")
+            return None
+
+        url = f"{self.API_ENDPOINT}/core/relationships/search/byItemsAndType"
+        params = parse_params({
+            "typeId": relationship_type, "relationshipLabel": relationship_label,
+                               "focusItem": item_uuid, "relatedItem": related_items}, embeds=None)
+        #pprint(params)
+        res = parse_json(self.api_get(url, params=params))
+        return res
+
+
