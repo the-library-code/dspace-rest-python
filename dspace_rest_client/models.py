@@ -28,14 +28,9 @@ class HALResource:
         Default constructor
         @param api_resource: optional API resource (JSON) from a GET response or successful POST can populate instance
         """
-        self.links = {}
-        self.embedded = {} 
-
-        if api_resource is not None:
-            self.links = api_resource.get('_links', {}).copy()
-            self.embedded = api_resource.get('_embedded', {}).copy()
-        else:
-            self.links = {'self': {'href': None}}
+        links_default = {'self': {'href': None}}    
+        self.links = api_resource.get('_links', {}).copy() if api_resource else links_default
+        self.embedded = api_resource.get('_embedded', {}).copy() if api_resource else {}
 
     def as_dict(self) -> dict[str, Any]:
         return {'type': self.type}
@@ -46,10 +41,7 @@ class AddressableHALResource(HALResource):
     """
     def __init__(self, api_resource=None):
         super().__init__(api_resource)
-        self.id = None
-
-        if api_resource is not None:
-            self.id = api_resource.get('id')
+        self.id = api_resource.get('id') if api_resource else None
 
     def as_dict(self):
         parent_dict = super().as_dict()
@@ -74,16 +66,10 @@ class ExternalDataObject(AddressableHALResource):
         @param api_resource: optional API resource (JSON) from a GET response or successful POST can populate instance
         """
         super().__init__(api_resource)
-        self.display = None
-        self.value = None
-        self.externalSource = None
-        self.metadata = {}
-
-        if api_resource is not None:
-            self.display = api_resource.get('display')
-            self.value = api_resource.get('value')
-            self.externalSource = api_resource.get('externalSource')
-            self.metadata = api_resource.get('metadata').copy()
+        self.display = api_resource.get('display') if api_resource else None
+        self.value = api_resource.get('value') if api_resource else None
+        self.externalSource = api_resource.get('externalSource') if api_resource else None
+        self.metadata = api_resource.get('metadata').copy() if api_resource else {}
 
     def get_metadata_values(self, field):
         """
@@ -119,28 +105,21 @@ class DSpaceObject(AddressableHALResource):
         Default constructor
         @param api_resource: optional API resource (JSON) from a GET response or successful POST can populate instance
         """
-        super().__init__(api_resource)
-        self.uuid = None
-        self.name = None
-        self.handle = None
-        self.lastModified = None
-        self.parent = None
-        self.metadata = {}
-
         if dso is not None:
             api_resource = dso.as_dict()
-            self.links = dso.links.copy()
 
-        if api_resource is not None:
-            self.id = api_resource.get('id')
-            self.uuid = api_resource.get('uuid')
-            self.name = api_resource.get('name')
-            self.handle = api_resource.get('handle')
-            self.metadata = api_resource.get('metadata', {}).copy()
-            self.lastModified = api_resource.get('lastModified')
-            # Python interprets _ prefix as private so for now, renaming this and handling it separately
-            # alternatively - each item could implement getters, or a public method to return links
-            self.links = api_resource.get('_links', {}).copy()
+        super().__init__(api_resource)
+        self.uuid = api_resource.get('uuid') if api_resource else None
+        self.name = api_resource.get('name') if api_resource else None
+        self.handle = api_resource.get('handle') if api_resource else None
+        self.lastModified = api_resource.get('lastModified') if api_resource else None
+        self.parent = None
+        self.metadata = api_resource.get('metadata', {}).copy() if api_resource else {}
+
+        # This is run after super().__init__(api_resource) to preserve any links already 
+        # set in the dso object used for instantiation.
+        if dso is not None:
+            self.links = dso.links.copy()
 
     def get_metadata_values(self, field):
         """
@@ -239,20 +218,10 @@ class Item(SimpleDSpaceObject):
         Default constructor. Call DSpaceObject init then set item-specific attributes
         @param api_resource: API result object to use as initial data
         """
-        self.inArchive = False
-        self.discoverable = False
-        self.withdrawn = False
-        self.metadata = {}
-        if dso is not None:
-            api_resource = dso.as_dict()
-            super().__init__(dso=dso)
-        else:
-            super().__init__(api_resource)
-
-        if api_resource is not None:
-            self.inArchive = api_resource.get('inArchive', True)
-            self.discoverable = api_resource.get('discoverable', False)
-            self.withdrawn = api_resource.get('withdrawn', False)
+        super().__init__(api_resource=api_resource, dso=dso)
+        self.inArchive = api_resource.get('inArchive', True) if api_resource else False
+        self.discoverable = api_resource.get('discoverable', False) if api_resource else False
+        self.withdrawn = api_resource.get('withdrawn', False) if api_resource else False
 
 
 
@@ -282,13 +251,6 @@ class Community(SimpleDSpaceObject):
     """
     type = 'community'
 
-    def __init__(self, api_resource=None):
-        """
-        Default constructor. Call DSpaceObject init then set item-specific attributes
-        @param api_resource: API result object to use as initial data
-        """
-        super().__init__(api_resource)
-
     def as_dict(self):
         """
         Return a dict representation of this Community, based on super with community-specific attributes added
@@ -308,22 +270,6 @@ class Collection(SimpleDSpaceObject):
     """
     type = "collection"
 
-    def __init__(self, api_resource=None):
-        """
-        Default constructor. Call DSpaceObject init then set collection-specific attributes
-        @param api_resource: API result object to use as initial data
-        """
-        super().__init__(api_resource)
-
-    def as_dict(self):
-        """
-        Return a dict representation of this Collection, based on super with collection-specific attributes added
-        @return: dict of Item for API use
-        """
-        dso_dict = super().as_dict()
-        collection_dict = {}
-        return {**dso_dict, **collection_dict}
-
 
 class Bundle(DSpaceObject):
     """
@@ -332,22 +278,6 @@ class Bundle(DSpaceObject):
     REST endpoint contract: https://github.com/DSpace/RestContract/blob/dspace-9.0/bundles.md
     """
     type = "bundle"
-
-    def __init__(self, api_resource=None):
-        """
-        Default constructor. Call DSpaceObject init then set bundle-specific attributes
-        @param api_resource: API result object to use as initial data
-        """
-        super().__init__(api_resource)
-
-    def as_dict(self):
-        """
-        Return a dict representation of this Bundle, based on super with bundle-specific attributes added
-        @return: dict of Bundle for API use
-        """
-        dso_dict = super().as_dict()
-        bundle_dict = {}
-        return {**dso_dict, **bundle_dict}
 
 
 class Bitstream(DSpaceObject):
@@ -364,20 +294,12 @@ class Bitstream(DSpaceObject):
         @param api_resource: API result object to use as initial data
         """
         super().__init__(api_resource)
+        checksum_default = {'checkSumAlgorithm': 'MD5', 'value': None}
         # Bitstream has a few extra fields specific to file storage
-        self.bundleName = None
-        self.sizeBytes = None
-        self.checkSum = {
-            'checkSumAlgorithm': 'MD5',
-            'value': None
-        }
-        self.sequenceId = None
-
-        if api_resource is not None:
-            self.bundleName = api_resource.get('bundleName')
-            self.sizeBytes = api_resource.get('sizeBytes')
-            self.checkSum = api_resource.get('checkSum', self.checkSum)
-            self.sequenceId = api_resource.get('sequenceId')
+        self.bundleName = api_resource.get('bundleName') if api_resource else None
+        self.sizeBytes = api_resource.get('sizeBytes') if api_resource else None
+        self.checkSum = api_resource.get('checkSum', checksum_default) if api_resource else checksum_default
+        self.sequenceId = api_resource.get('sequenceId') if api_resource else None
 
     def as_dict(self):
         """
@@ -401,20 +323,12 @@ class BitstreamFormat(AddressableHALResource):
 
     def __init__(self, api_resource):
         super(BitstreamFormat, self).__init__(api_resource)
-        self.shortDescription = None
-        self.description = None
-        self.mimetype = None
-        self.supportLevel = None
-        self.internal = False
-        self.extensions = []
-
-        if api_resource is not None:
-            self.shortDescription = api_resource.get('shortDescription')
-            self.description = api_resource.get('description')
-            self.mimetype = api_resource.get('mimetype')
-            self.supportLevel = api_resource.get('supportLevel')
-            self.internal = api_resource.get('internal')
-            self.extensions = api_resource.get('extensions', {}).copy()
+        self.shortDescription = api_resource.get('shortDescription') if api_resource else None
+        self.description = api_resource.get('description') if api_resource else None
+        self.mimetype = api_resource.get('mimetype') if api_resource else None
+        self.supportLevel = api_resource.get('supportLevel') if api_resource else None
+        self.internal = api_resource.get('internal') if api_resource else False
+        self.extensions = api_resource.get('extensions', {}).copy() if api_resource else []
 
     def as_dict(self):
         parent_dict = super(BitstreamFormat, self).as_dict()
@@ -438,16 +352,10 @@ class Version(AddressableHALResource):
 
     def __init__(self, api_resource=None):
         super().__init__(api_resource)
-        self.version = None
-        self.created = None
-        self.summary = None
-        self.submitterName = None
-
-        if api_resource is not None:
-            self.version = api_resource.get('version')
-            self.created = api_resource.get('created')
-            self.summary = api_resource.get('summary')
-            self.submitterName = api_resource.get('submitterName')
+        self.version = api_resource.get('version') if api_resource else None
+        self.created = api_resource.get('created') if api_resource else None
+        self.summary = api_resource.get('summary') if api_resource else None
+        self.submitterName = api_resource.get('submitterName') if api_resource else None
 
     def as_dict(self):
         """
@@ -478,12 +386,8 @@ class Group(DSpaceObject):
         @param api_resource: API result object to use as initial data
         """
         super().__init__(api_resource)
-        self.name = None
-        self.permanent = False
-
-        if api_resource is not None:
-            self.name = api_resource.get('name')
-            self.permanent = api_resource.get('permanent')
+        self.name = api_resource.get('name') if api_resource else None
+        self.permanent = api_resource.get('permanent') if api_resource else False
 
     def as_dict(self):
         """
@@ -513,22 +417,13 @@ class User(SimpleDSpaceObject):
         @param api_resource: API result object to use as initial data
         """
         super().__init__(api_resource)
-        self.name = None
-        self.netid = None
-        self.lastActive = None
-        self.canLogIn = False
-        self.email = None
-        self.requireCertificate = False
-        self.selfRegistered = False
-
-        if api_resource is not None:
-            self.name = api_resource.get('name')
-            self.netid = api_resource.get('netid')
-            self.lastActive = api_resource.get('lastActive')
-            self.canLogIn = api_resource.get('canLogIn')
-            self.email = api_resource.get('email')
-            self.requireCertificate = api_resource.get('requireCertificate')
-            self.selfRegistered = api_resource.get('selfRegistered')
+        self.name = api_resource.get('name') if api_resource else None
+        self.netid = api_resource.get('netid') if api_resource else None
+        self.lastActive = api_resource.get('lastActive') if api_resource else None
+        self.canLogIn = api_resource.get('canLogIn') if api_resource else False
+        self.email = api_resource.get('email') if api_resource else None
+        self.requireCertificate = api_resource.get('requireCertificate') if api_resource else False
+        self.selfRegistered = api_resource.get('selfRegistered') if api_resource else False
 
     def as_dict(self):
         """
@@ -554,14 +449,9 @@ class InProgressSubmission(AddressableHALResource):
 
     def __init__(self, api_resource):
         super().__init__(api_resource)
-        self.lastModified = None
-        self.step = None
-        self.sections = {}
-
-        if api_resource is not None:
-            self.lastModified = api_resource.get('lastModified')
-            self.step = api_resource.get('step')
-            self.sections = api_resource.get('sections', {}).copy()
+        self.lastModified = api_resource.get('lastModified') if api_resource else None
+        self.step = api_resource.get('step') if api_resource else None
+        self.sections = api_resource.get('sections', {}).copy() if api_resource else {}
 
     def as_dict(self):
         parent_dict = super().as_dict()
@@ -582,12 +472,6 @@ class WorkspaceItem(InProgressSubmission):
     """
     type = 'workspaceitem'
 
-    def __init__(self, api_resource):
-        super().__init__(api_resource)
-
-    def as_dict(self):
-        return super().as_dict()
-
 class EntityType(AddressableHALResource):
     """
     Extends Addressable HAL Resource to model an entity type (aka item type) used in entities and relationships.
@@ -601,10 +485,7 @@ class EntityType(AddressableHALResource):
 
     def __init__(self, api_resource):
         super().__init__(api_resource)
-        self.label = None
-
-        if api_resource is not None:
-            self.label = api_resource.get('label')
+        self.label = api_resource.get('label') if api_resource else None
 
 class RelationshipType(AddressableHALResource):
     """
@@ -633,14 +514,9 @@ class SearchResult(HALResource):
 
     def __init__(self, api_resource):
         super().__init__(api_resource)
-        self.query = None
-        self.scope = None
-        self.appliedFilters = [] 
-
-        if api_resource is not None:
-            self.query = api_resource.get('query')
-            self.scope = api_resource.get('scope')
-            self.appliedFilters = api_resource.get('appliedFilters', []).copy()
+        self.query = api_resource.get('query') if api_resource else None
+        self.scope = api_resource.get('scope') if api_resource else None
+        self.appliedFilters = api_resource.get('appliedFilters', []).copy() if api_resource else []
 
     def as_dict(self):
         parent_dict = super().as_dict()
@@ -663,20 +539,12 @@ class ResourcePolicy(AddressableHALResource):
 
     def __init__(self, api_resource):
         super().__init__(api_resource)
-        self.name = None
-        self.description = None
-        self.policyType = None
-        self.action = None
-        self.startDate = None
-        self.endDate = None
-
-        if api_resource is not None:
-            self.name = api_resource.get('name')
-            self.description = api_resource.get('description')
-            self.policyType = api_resource.get('policyType')
-            self.action = api_resource.get('action')
-            self.startDate = api_resource.get('startDate')
-            self.endDate = api_resource.get('endDate')
+        self.name = api_resource.get('name') if api_resource else None
+        self.description = api_resource.get('description') if api_resource else None
+        self.policyType = api_resource.get('policyType') if api_resource else None
+        self.action = api_resource.get('action') if api_resource else None
+        self.startDate = api_resource.get('startDate') if api_resource else None
+        self.endDate = api_resource.get('endDate') if api_resource else None
 
     def as_dict(self):
         hal_dict = super().as_dict()
