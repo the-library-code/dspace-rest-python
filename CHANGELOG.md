@@ -1,5 +1,17 @@
 # Changelog
 
+### 0.1.20
+
+Date: 2026-06-27
+
+PyPI release page: https://pypi.org/project/dspace-rest-client/0.1.20/
+
+This is a small release to improve data models.
+
+**Changes**
+
+1. Refactor data models `__init__` methods and default attribute handling (thanks @ehanson8): https://github.com/the-library-code/dspace-rest-python/pull/73
+
 ### 0.1.19
 
 Date: 2026-05-21
