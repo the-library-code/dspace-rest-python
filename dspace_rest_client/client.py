@@ -1036,7 +1036,7 @@ class DSpaceClient:
 
     # PAGINATION
     def get_communities(
-        self, uuid=None, page=0, size=20, sort=None, top=False, embeds=None
+        self, uuid=None, page=0, size=20, sort=None, top=False, embeds=None, projection=None
     ):
         """
         Get communities - either all, for single UUID, or all top-level (ie no sub-communities)
@@ -1045,6 +1045,7 @@ class DSpaceClient:
         @param size:    integer size (default: 20)
         @param top:     whether to restrict search to top communities (default: false)
         @param embeds:  list of resources to embed in response JSON
+        @param projection: projection parameter
         @return:        list of communities, or None if error
         """
         url = f"{self.API_ENDPOINT}/core/communities"
@@ -1055,13 +1056,18 @@ class DSpaceClient:
             params["page"] = page
         if sort is not None:
             params["sort"] = sort
+        if projection is not None:
+            params["projection"] = projection
         if uuid is not None:
             try:
                 # This isn't used, but it'll throw a ValueError if not a valid UUID
                 id = UUID(uuid).version
                 # Set URL and parameters
                 url = f"{url}/{uuid}"
-                params = None
+                if projection is not None:
+                    params["projection"] = projection
+                else:
+                    params = None
             except ValueError:
                 logging.error("Invalid community UUID: %s", uuid)
                 return None
