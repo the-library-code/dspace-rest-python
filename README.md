@@ -20,6 +20,20 @@ To install with pip:
 
 (or `pip3` or `python -m pip` as appropriate to your environment)
 
+`create_bitstream()` reads uploads through [smart_open](https://github.com/piskvorky/smart_open).
+Local files and `http(s)://` URLs work out of the box. To upload directly from cloud storage,
+install the matching extra, which pulls in the provider SDK:
+
+| Extra     | Enables paths like                     |
+|-----------|----------------------------------------|
+| `[s3]`    | `s3://bucket/key`                      |
+| `[gcs]`   | `gs://bucket/blob`                     |
+| `[azure]` | `azure://container/blob`               |
+| `[ssh]`   | `ssh://`, `scp://`, `sftp://`          |
+| `[all]`   | every backend supported by smart_open  |
+
+e.g. `pip install "dspace-rest-client[s3]"`
+
 To install manually, clone this repository and install the requirements:
 ```commandline
 git clone https://github.com/the-library-code/dspace-rest-python.git
