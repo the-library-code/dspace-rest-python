@@ -46,6 +46,16 @@ DSpace-CRIS allows API tokens for users to be created in their EPerson profile p
 
 If a token is found, it will be set as the Authorization Bearer header instead of requesting JWT bearer tokens.
 
+### Custom request headers
+
+Some environments require an additional header on every request (e.g. for a proxy or gateway). Pass these as
+`request_header_mixins` when creating the client, and they will be included in all REST API requests, taking
+precedence over the default headers:
+
+```python
+d = DSpaceClient(request_header_mixins={"X-Foo": "bar"})
+```
+
 ### Usage examples
 
 See the `example.py` script for an example of community, collection, item, bundle and bitstream creation.
