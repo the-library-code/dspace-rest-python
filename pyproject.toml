@@ -25,9 +25,18 @@ dependencies = [
     "requests~=2.32.5",
     "pysocks~=1.7.1",
     "pysolr~=3.11.0",
-    "smart_open[all]~=7.5.1"
+    "smart_open>=7.5.1,<10"
 ]
 requires-python = ">=3.8.0"
+
+[project.optional-dependencies]
+# Cloud storage backends for create_bitstream(path=...), forwarded to smart_open.
+# Local files and http(s) URLs work without any of these.
+s3 = ["smart_open[s3]>=7.5.1,<10"]
+gcs = ["smart_open[gcs]>=7.5.1,<10"]
+azure = ["smart_open[azure]>=7.5.1,<10"]
+ssh = ["smart_open[ssh]>=7.5.1,<10"]
+all = ["smart_open[all]>=7.5.1,<10"]
 
 [project.urls]
 Documentation = "https://github.com/the-library-code/dspace-rest-python/blob/main/README.md"

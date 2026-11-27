@@ -974,6 +974,15 @@ class DSpaceClient:
             files = {"file": file}
             properties = {"name": name, "metadata": metadata, "bundleName": bundle.name}
             payload = {"properties": json.dumps(properties) + ";application/json"}
+        except ImportError as e:
+            # smart_open raises ImportError when the SDK for a cloud scheme is missing
+            logging.error(
+                "Error reading file from %s: %s. Cloud storage paths need an optional extra, "
+                "e.g. pip install 'dspace-rest-client[s3]' (or [gcs], [azure], [ssh], [all])",
+                path,
+                str(e),
+            )
+            return None
         except Exception as e:
             logging.error("Error reading file from %s: %s", path, str(e))
             return None
